@@ -8,7 +8,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles("prod")
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 class TodoControllerTest {
 
