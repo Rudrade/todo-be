@@ -1,7 +1,0 @@
-{"properties": [
-  {
-    "name": "active.profile",
-    "type": "java.lang.String",
-    "description": "A description for 'active.profile'"
-  }
-]}

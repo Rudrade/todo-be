@@ -12,6 +12,5 @@ public class TodoApplication {
 	}
 
 	// TODO: Security
-	// TODO: Secret configuration/properties
 	
 }
