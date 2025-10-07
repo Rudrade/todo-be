@@ -28,7 +28,7 @@ public class TodoController {
 	}
 	
 	@GetMapping("/all")
-	public List<TaskDto> getAll() {
+	public List<TaskDto> getAll() {// TODO: Return with counter, e offset/limit
 		return service.getAll();
 	}
 	

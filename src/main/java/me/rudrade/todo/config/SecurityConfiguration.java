@@ -40,11 +40,11 @@ public class SecurityConfiguration {
                 )
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .build();
 	}
 	
-	@Bean
-	CorsConfigurationSource corsConfigurationSource() {
+	private CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(List.of(corsUrl));
 		configuration.setAllowedMethods(List.of("GET", "POST"));
