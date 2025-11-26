@@ -1,6 +1,6 @@
 package me.rudrade.todo.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import me.rudrade.todo.exception.InvalidAccessException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,18 +12,28 @@ import me.rudrade.todo.model.User;
 import me.rudrade.todo.service.AuthenticationService;
 import me.rudrade.todo.service.JwtService;
 
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/todo/auth")
 public class AuthController {
 
-	@Autowired private JwtService jwtService;
-	@Autowired private AuthenticationService authenticationService;
+	private final JwtService jwtService;
+	private final AuthenticationService authenticationService;
+
+	public AuthController(JwtService jwtService, AuthenticationService authenticationService) {
+		this.jwtService = jwtService;
+		this.authenticationService = authenticationService;
+	}
 	
 	@PostMapping("/login")
 	public LoginResponse authenticate(@RequestBody UserDto userDto) {
-		User authenticatedUser = authenticationService.authenticate(userDto);
+		Optional<User> authenticatedUser = authenticationService.authenticate(userDto);
+        if (authenticatedUser.isEmpty()) {
+            throw new InvalidAccessException();
+        }
 		
-		String jwtToken = jwtService.generateToken(authenticatedUser.getUsername());
+		String jwtToken = jwtService.generateToken(authenticatedUser.get().getUsername());
 		
 		return new LoginResponse(jwtToken, jwtService.getExpirationTime());
 	}

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -18,8 +17,13 @@ import me.rudrade.todo.repository.TaskRepository;
 @Service
 public class TaskService {
 
-	@Autowired private TaskRepository repository;
-	@Autowired private Mapper mapper;
+	private final TaskRepository repository;
+	private final Mapper mapper;
+
+    public TaskService(TaskRepository repository, Mapper mapper) {
+        this.repository = repository;
+        this.mapper = mapper;
+    }
 	
 	public TaskDto saveTask(@Nonnull TaskDto input) {
 

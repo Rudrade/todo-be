@@ -1,6 +1,5 @@
 package me.rudrade.todo.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,7 +15,11 @@ import me.rudrade.todo.repository.UserRepository;
 @Configuration
 public class AuthConfig {
 
-	@Autowired private UserRepository userRepository;
+	private final UserRepository userRepository;
+
+    public AuthConfig(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 	
 	@Bean
     AuthenticationProvider authenticationProvider() {
