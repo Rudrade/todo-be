@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import me.rudrade.todo.dto.response.TaskListResponse;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -38,13 +39,26 @@ public class TaskService {
 		return mapper.toTaskDto(task);
 	}
 	
-	public List<TaskDto> getAll() {
-		List<TaskDto> lst = new ArrayList<>();
+	public TaskListResponse getAll(String filter) {
+        Iterable<Task> result = null;
+        long count = 0;
+        if ("today".equalsIgnoreCase(filter)) {
+            result = repository.findDueToday();
+            count = repository.countFindDueToday();
+
+        } else if ("upcoming".equalsIgnoreCase(filter)) {
+            result = repository.findDueUpcoming();
+            count = repository.countFindDueUpcoming();
+
+        } else {
+            result = repository.findAll();
+            count = repository.count();
+        }
+
+        List<TaskDto> lst = new ArrayList<>();
+        result.forEach(t -> lst.add(mapper.toTaskDto(t)));
 		
-		repository.findAll()
-			.forEach(t -> lst.add(mapper.toTaskDto(t)));
-		
-		return lst;
+		return new TaskListResponse(count, lst);
 	}
 	
 	public TaskDto getById(@Nonnull UUID id) {

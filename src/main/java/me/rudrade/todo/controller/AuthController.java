@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import me.rudrade.todo.dto.LoginResponse;
+import me.rudrade.todo.dto.response.LoginResponse;
 import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.service.AuthenticationService;

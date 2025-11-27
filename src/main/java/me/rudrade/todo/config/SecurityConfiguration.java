@@ -26,7 +26,7 @@ public class SecurityConfiguration {
 	@Value("${cors-url}")
 	private String[] corsUrl;
 
-    @Value("${spring.profiles.active}")
+    @Value("${profile.active}")
     private String currentProfile;
 
 	public SecurityConfiguration(AuthenticationProvider authenticationProvider, 
@@ -62,7 +62,7 @@ public class SecurityConfiguration {
 	private CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(List.of(corsUrl));
-		configuration.setAllowedMethods(List.of("GET", "POST"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "DELETE"));
 		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 		
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

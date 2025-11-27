@@ -1,8 +1,9 @@
 package me.rudrade.todo.controller;
 
-import java.util.List;
 import java.util.UUID;
 
+import me.rudrade.todo.dto.response.TaskListResponse;
+import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +17,7 @@ import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.service.TaskService;
 
 @RestController
-@RequestMapping("/todo/api")
+@RequestMapping("/todo/api/task")
 public class TodoController {
 	
 	private final TaskService service;
@@ -30,9 +31,9 @@ public class TodoController {
 		return service.saveTask(task);
 	}
 	
-	@GetMapping("/all")
-	public List<TaskDto> getAll() {// TODO: Return with counter, e offset/limit
-		return service.getAll();
+	@GetMapping()
+	public TaskListResponse getAll(@Param("filter") String filter) {// TODO: Return with counter, e offset/limit
+        return service.getAll(filter);
 	}
 	
 	@GetMapping("/detail/{id}")
