@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.Task;
 import me.rudrade.todo.repository.TaskRepository;
+import me.rudrade.todo.dto.filter.TaskListFilter.Filter;
 
 @Service
 public class TaskService {
@@ -39,16 +41,20 @@ public class TaskService {
 		return mapper.toTaskDto(task);
 	}
 	
-	public TaskListResponse getAll(String filter) {
+	public TaskListResponse getAll(@Nonnull TaskListFilter filter) {
         Iterable<Task> result = null;
         long count = 0;
-        if ("today".equalsIgnoreCase(filter)) {
+        if (Filter.TODAY.equals(filter.filter())) {
             result = repository.findDueToday();
             count = repository.countFindDueToday();
 
-        } else if ("upcoming".equalsIgnoreCase(filter)) {
+        } else if (Filter.UPCOMING.equals(filter.filter())) {
             result = repository.findDueUpcoming();
             count = repository.countFindDueUpcoming();
+
+        } else if (Filter.SEARCH.equals(filter.filter()) && filter.searchTerm() != null) {
+            result = repository.findByTitleContains(filter.searchTerm());
+            count = repository.countByTitleContains(filter.searchTerm());
 
         } else {
             result = repository.findAll();

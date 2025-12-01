@@ -2,6 +2,7 @@ package me.rudrade.todo.controller;
 
 import java.util.UUID;
 
+import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
 import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,8 +33,11 @@ public class TodoController {
 	}
 	
 	@GetMapping()
-	public TaskListResponse getAll(@Param("filter") String filter) {// TODO: Return with counter, e offset/limit
-        return service.getAll(filter);
+	public TaskListResponse getAll(@Param("filter") String filter, @Param("searchTerm") String searchTerm) {// TODO: Return with pagination
+        TaskListFilter listFilter = new TaskListFilter(
+                filter==null || filter.isEmpty() ? null : TaskListFilter.Filter.valueOf(filter.toUpperCase()),
+                searchTerm);
+        return service.getAll(listFilter);
 	}
 	
 	@GetMapping("/detail/{id}")

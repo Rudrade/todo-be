@@ -23,4 +23,10 @@ public interface TaskRepository extends CrudRepository<Task, UUID>{
 
     @Query("SELECT COUNT(t.id) FROM Task t WHERE t.dueDate > CURRENT_DATE")
     long countFindDueUpcoming();
+
+    @Query("SELECT t FROM Task t WHERE LOWER(t.title) LIKE LOWER(CONCAT('%', ?1, '%'))")
+    List<Task> findByTitleContains(String title);
+
+    @Query("SELECT COUNT(t.id) FROM Task t WHERE LOWER(t.title) LIKE LOWER(CONCAT('%', ?1, '%'))")
+    long countByTitleContains(String title);
 }
