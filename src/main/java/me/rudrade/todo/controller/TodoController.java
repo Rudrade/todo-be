@@ -33,7 +33,7 @@ public class TodoController {
 	}
 	
 	@GetMapping()
-	public TaskListResponse getAll(@Param("filter") String filter, @Param("searchTerm") String searchTerm) {// TODO: Return with pagination
+	public TaskListResponse getAll(@Param("filter") String filter, @Param("searchTerm") String searchTerm) {
         TaskListFilter listFilter = new TaskListFilter(
                 filter==null || filter.isEmpty() ? null : TaskListFilter.Filter.valueOf(filter.toUpperCase()),
                 searchTerm);

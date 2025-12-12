@@ -43,6 +43,7 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorizeHttpRequests -> {
                     authorizeHttpRequests
+                            .requestMatchers("/health/**").permitAll()
                         .requestMatchers("/todo/auth/**").permitAll()
                         .requestMatchers("/todo/api/**").authenticated();
 
