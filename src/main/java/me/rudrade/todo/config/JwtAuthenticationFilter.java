@@ -2,7 +2,8 @@ package me.rudrade.todo.config;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,9 +23,15 @@ import me.rudrade.todo.service.JwtService;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-	
-	@Autowired private JwtService jwtService;
-	@Autowired private UserDetailsService userDetailsService;
+    private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
+	private final JwtService jwtService;
+	private final UserDetailsService userDetailsService;
+
+    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
+    }
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -62,6 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			throw new InvalidAccessException();
 			
 		} catch (Exception e) {
+            LOGGER.error("", e);
 			throw new InvalidAccessException();
 		}
 		

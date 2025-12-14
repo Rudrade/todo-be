@@ -18,7 +18,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfiguration {
+public class SecurityConfig {
 	
 	private final AuthenticationProvider authenticationProvider;
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -29,8 +29,8 @@ public class SecurityConfiguration {
     @Value("${profile.active}")
     private String currentProfile;
 
-	public SecurityConfiguration(AuthenticationProvider authenticationProvider, 
-	                            JwtAuthenticationFilter jwtAuthenticationFilter) {
+	public SecurityConfig(AuthenticationProvider authenticationProvider,
+                          JwtAuthenticationFilter jwtAuthenticationFilter) {
 		this.authenticationProvider = authenticationProvider;
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
 	}
