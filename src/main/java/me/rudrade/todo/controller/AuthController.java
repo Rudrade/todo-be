@@ -30,7 +30,7 @@ public class AuthController {
 	public LoginResponse authenticate(@RequestBody UserDto userDto) {
 		Optional<User> authenticatedUser = authenticationService.authenticate(userDto);
         if (authenticatedUser.isEmpty()) {
-            throw new InvalidAccessException();
+			throw new InvalidAccessException();
         }
 		
 		String jwtToken = jwtService.generateToken(authenticatedUser.get().getUsername());
