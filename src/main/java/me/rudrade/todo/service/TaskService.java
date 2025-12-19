@@ -42,8 +42,8 @@ public class TaskService {
 	}
 	
 	public TaskListResponse getAll(@Nonnull TaskListFilter filter) {
-        Iterable<Task> result = null;
-        long count = 0;
+        Iterable<Task> result;
+        long count;
         if (Filter.TODAY.equals(filter.filter())) {
             result = repository.findDueToday();
             count = repository.countFindDueToday();

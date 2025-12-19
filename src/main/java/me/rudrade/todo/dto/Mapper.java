@@ -12,8 +12,7 @@ public class Mapper {
 				task.getId(),
 				task.getTitle(),
 				task.getDescription(),
-				task.getDueDate(),
-				task.isCompleted()
+				task.getDueDate()
 				);
 	}
 	
@@ -22,8 +21,7 @@ public class Mapper {
 				dto.id(),
 				dto.title(),
 				dto.description(),
-				dto.dueDate(),
-				dto.completed()
+				dto.dueDate()
 				);
 	}
 	

@@ -18,7 +18,12 @@ public class ExceptionHandler {
 	
 	@org.springframework.web.bind.annotation.ExceptionHandler(TaskNotFoundException.class)
 	public ResponseEntity<Error> handleTaskNotFoundException(TaskNotFoundException ex) {
-		return new ResponseEntity<>(new Error(ex.getMessage()), HttpStatus.NOT_FOUND);
+		return new ResponseEntity<>(new Error(ex.getMessage()), HttpStatus.BAD_REQUEST);
+	}
+
+	@org.springframework.web.bind.annotation.ExceptionHandler(InvalidAccessException.class)
+	public ResponseEntity<Error> handleInvalidAccessException(InvalidAccessException ex) {
+		return new ResponseEntity<>(new Error("Access Invalid"), HttpStatus.FORBIDDEN);
 	}
 
     @org.springframework.web.bind.annotation.ExceptionHandler(RuntimeException.class)

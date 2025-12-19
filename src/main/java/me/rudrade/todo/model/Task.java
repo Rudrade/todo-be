@@ -1,6 +1,7 @@
 package me.rudrade.todo.model;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -17,7 +18,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
+@ToString
 public class Task {
 	
 	@Id
@@ -34,7 +35,15 @@ public class Task {
 	@Column(name = "due_date")
 	private LocalDate dueDate;
 	
-	@Column(name = "completed")
-	private boolean completed;
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || getClass() != o.getClass()) return false;
+		Task task = (Task) o;
+		return Objects.equals(id, task.id) && Objects.equals(title, task.title) && Objects.equals(description, task.description) && Objects.equals(dueDate, task.dueDate);
+	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(id, title, description, dueDate);
+	}
 }

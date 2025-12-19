@@ -31,7 +31,7 @@ class TaskServiceTest {
     // ### saveTask ###
     @Test
     void itShouldSaveNewTask() {
-        TaskDto input = new TaskDto(null, "title 123", "description 123", LocalDate.now(), true);
+        TaskDto input = new TaskDto(null, "title 123", "description 123", LocalDate.now());
 
         Task task = mapper.toTask(input);
         task.setId(UUID.randomUUID());
@@ -52,7 +52,7 @@ class TaskServiceTest {
 
     @Test
     void itShouldSaveExistingTask() {
-        TaskDto input = new TaskDto(UUID.randomUUID(), "title 321", "description 321", LocalDate.now(), true);
+        TaskDto input = new TaskDto(UUID.randomUUID(), "title 321", "description 321", LocalDate.now());
 
         Task task = new Task();
         task.setId(input.id());
@@ -77,7 +77,7 @@ class TaskServiceTest {
 
     @Test
     void itShouldNotSaveTaskWithNonExistingId() {
-        TaskDto input = new TaskDto(UUID.randomUUID(), "title 123", "description 123", LocalDate.now(), true);
+        TaskDto input = new TaskDto(UUID.randomUUID(), "title 123", "description 123", LocalDate.now());
 
         when(taskRepository.findById(input.id()))
                 .thenReturn(Optional.empty());
@@ -100,16 +100,14 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now(),
-                false
+                LocalDate.now()
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now(),
-                false
+                LocalDate.now()
         );
 
         when(taskRepository.findDueToday())
@@ -149,16 +147,14 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now().plusDays(1),
-                false
+                LocalDate.now().plusDays(1)
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now().plusDays(3),
-                false
+                LocalDate.now().plusDays(3)
         );
 
         when(taskRepository.findDueUpcoming())
@@ -198,16 +194,14 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now(),
-                false
+                LocalDate.now()
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now(),
-                false
+                LocalDate.now()
         );
 
         when(taskRepository.findByTitleContains("title"))
@@ -247,16 +241,14 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now(),
-                false
+                LocalDate.now()
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now(),
-                false
+                LocalDate.now()
         );
 
         when(taskRepository.findAll())
@@ -278,6 +270,75 @@ class TaskServiceTest {
 
         verify(taskRepository, times(1)).findAll();
         verify(taskRepository, times(1)).count();
+        verifyNoMoreInteractions(taskRepository);
+    }
+
+    // ### getById ###
+    @Test
+    void itShouldGetById() {
+        Task task = new Task();
+        task.setId(UUID.randomUUID());
+        task.setTitle("title 123");
+
+        when(taskRepository.findById(task.getId()))
+                .thenReturn(Optional.of(task));
+
+        TaskDto output = taskService().getById(task.getId());
+        assertThat(output)
+                .isNotNull()
+                .isEqualTo(mapper.toTaskDto(task));
+
+        verify(taskRepository, times(1))
+                .findById(task.getId());
+        verifyNoMoreInteractions(taskRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenNotFoundById() {
+        UUID id = UUID.randomUUID();
+
+        when(taskRepository.findById(id))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> {
+            taskService().getById(id);
+        }).isInstanceOf(TaskNotFoundException.class);
+
+        verify(taskRepository, times(1))
+                .findById(id);
+        verifyNoMoreInteractions(taskRepository);
+    }
+
+    // ### deleteById ###
+    @Test
+    void itShouldDeleteById() {
+        UUID id = UUID.randomUUID();
+
+        when(taskRepository.findById(id))
+                .thenReturn(Optional.of(new Task()));
+
+        taskService().deleteById(id);
+
+        verify(taskRepository, times(1))
+                .findById(id);
+        verify(taskRepository, times(1))
+                .deleteById(id);
+        verifyNoMoreInteractions(taskRepository);
+    }
+
+    @Test
+    void itShouldNotDeleteByIdWhenNotFound() {
+        UUID id = UUID.randomUUID();
+
+        when(taskRepository.findById(id))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> {
+            taskService().deleteById(id);
+        }).isInstanceOf(TaskNotFoundException.class);
+
+        verify(taskRepository, times(1))
+                .findById(id);
         verifyNoMoreInteractions(taskRepository);
     }
 
