@@ -1,17 +1,14 @@
 package me.rudrade.todo.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
+import me.rudrade.todo.service.AuthenticationService;
+import me.rudrade.todo.service.UserListService;
 import org.springframework.data.repository.query.Param;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Nonnull;
 import me.rudrade.todo.dto.TaskDto;
@@ -22,14 +19,18 @@ import me.rudrade.todo.service.TaskService;
 public class TodoController {
 	
 	private final TaskService service;
+	private final UserListService userListService;
+	private final AuthenticationService authenticationService;
 
-    public TodoController(TaskService service) {
-        this.service = service;
-    }
+	public TodoController(TaskService service, UserListService userListService, AuthenticationService authenticationService) {
+		this.service = service;
+		this.userListService = userListService;
+		this.authenticationService = authenticationService;
+	}
 
 	@PostMapping("/save")
-	public TaskDto saveTask(@RequestBody @Nonnull TaskDto task) {
-		return service.saveTask(task);
+	public TaskDto saveTask(@RequestBody @Nonnull TaskDto task, @RequestHeader("Authorization") @Nonnull String authToken) {
+		return service.saveTask(task, authenticationService.getUserByAuth(authToken).orElse(null));
 	}
 	
 	@GetMapping()
@@ -49,5 +50,9 @@ public class TodoController {
 	public void delete(@PathVariable @Nonnull UUID id) {
 		service.deleteById(id);
 	}
-	
+
+	@GetMapping("/lists")
+	public List<String> getUserLists(@RequestHeader("Authorization") @Nonnull String authToken) {
+		return userListService.getUserListsByToken(authToken);
+	}
 }

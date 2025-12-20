@@ -18,6 +18,7 @@ import java.util.UUID;
 class AuthenticationServiceTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private JwtService jwtService;
 
     private AuthenticationService authenticationService;
 
@@ -41,7 +42,7 @@ class AuthenticationServiceTest {
 
     private AuthenticationService authenticationService() {
         if (authenticationService==null) {
-            authenticationService = new AuthenticationService(userRepository);
+            authenticationService = new AuthenticationService(userRepository, jwtService);
         }
         return authenticationService;
     }

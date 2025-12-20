@@ -7,6 +7,8 @@ import java.util.UUID;
 
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
+import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.UserList;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -20,15 +22,19 @@ import me.rudrade.todo.dto.filter.TaskListFilter.Filter;
 @Service
 public class TaskService {
 
+	private final UserListService userListService;
 	private final TaskRepository repository;
-	private final Mapper mapper;
 
-    public TaskService(TaskRepository repository, Mapper mapper) {
-        this.repository = repository;
-        this.mapper = mapper;
-    }
-	
+	public TaskService(UserListService userListService, TaskRepository repository) {
+		this.userListService = userListService;
+		this.repository = repository;
+	}
+
 	public TaskDto saveTask(@Nonnull TaskDto input) {
+		return saveTask(input, null);
+	}
+
+	public TaskDto saveTask(@Nonnull TaskDto input, User user) {
 
 		if (input.id() != null) {
 			Optional<Task> optTask = repository.findById(input.id());
@@ -36,9 +42,15 @@ public class TaskService {
 				throw new TaskNotFoundException();
 			}
 		}
+
+		Task inputTask = Mapper.toTask(input);
+		if (input.listName() != null) {
+			UserList userList = userListService.saveByName(input.listName(), user);
+			inputTask.setUserList(userList);
+		}
 		
-		Task task = repository.save(mapper.toTask(input));
-		return mapper.toTaskDto(task);
+		Task task = repository.save(inputTask);
+		return Mapper.toTaskDto(task);
 	}
 	
 	public TaskListResponse getAll(@Nonnull TaskListFilter filter) {
@@ -62,7 +74,7 @@ public class TaskService {
         }
 
         List<TaskDto> lst = new ArrayList<>();
-        result.forEach(t -> lst.add(mapper.toTaskDto(t)));
+        result.forEach(t -> lst.add(Mapper.toTaskDto(t)));
 		
 		return new TaskListResponse(count, lst);
 	}
@@ -73,7 +85,7 @@ public class TaskService {
 			throw new TaskNotFoundException();
 		}
 		
-		return mapper.toTaskDto(optTask.get());
+		return Mapper.toTaskDto(optTask.get());
 	}
 	
 	public void deleteById(@Nonnull UUID id) {

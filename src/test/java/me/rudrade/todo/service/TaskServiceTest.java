@@ -25,18 +25,17 @@ class TaskServiceTest {
 
     @Mock private TaskRepository taskRepository;
 
-    private final Mapper mapper = new Mapper();
     private TaskService taskService;
 
     // ### saveTask ###
     @Test
     void itShouldSaveNewTask() {
-        TaskDto input = new TaskDto(null, "title 123", "description 123", LocalDate.now());
+        TaskDto input = new TaskDto(null, "title 123", "description 123", LocalDate.now(), null);
 
-        Task task = mapper.toTask(input);
+        Task task = Mapper.toTask(input);
         task.setId(UUID.randomUUID());
 
-        when(taskRepository.save(mapper.toTask(input)))
+        when(taskRepository.save(Mapper.toTask(input)))
                 .thenReturn(task);
 
         TaskDto output = taskService().saveTask(input);
@@ -46,21 +45,21 @@ class TaskServiceTest {
                 .usingRecursiveComparison().ignoringFields("id").isEqualTo(input);
         assertThat(output.id()).isNotNull();
 
-        verify(taskRepository, times(1)).save(mapper.toTask(input));
+        verify(taskRepository, times(1)).save(Mapper.toTask(input));
         verifyNoMoreInteractions(taskRepository);
     }
 
     @Test
     void itShouldSaveExistingTask() {
-        TaskDto input = new TaskDto(UUID.randomUUID(), "title 321", "description 321", LocalDate.now());
+        TaskDto input = new TaskDto(UUID.randomUUID(), "title 321", "description 321", LocalDate.now(), null);
 
         Task task = new Task();
         task.setId(input.id());
         when(taskRepository.findById(input.id()))
                 .thenReturn(Optional.of(task));
 
-        Task savedTask = mapper.toTask(input);
-        when(taskRepository.save(mapper.toTask(input)))
+        Task savedTask = Mapper.toTask(input);
+        when(taskRepository.save(Mapper.toTask(input)))
                 .thenReturn(savedTask);
 
         TaskDto output = taskService().saveTask(input);
@@ -71,13 +70,13 @@ class TaskServiceTest {
         assertThat(output.id()).isNotNull();
 
         verify(taskRepository, times(1)).findById(input.id());
-        verify(taskRepository, times(1)).save(mapper.toTask(input));
+        verify(taskRepository, times(1)).save(Mapper.toTask(input));
         verifyNoMoreInteractions(taskRepository);
     }
 
     @Test
     void itShouldNotSaveTaskWithNonExistingId() {
-        TaskDto input = new TaskDto(UUID.randomUUID(), "title 123", "description 123", LocalDate.now());
+        TaskDto input = new TaskDto(UUID.randomUUID(), "title 123", "description 123", LocalDate.now(), null);
 
         when(taskRepository.findById(input.id()))
                 .thenReturn(Optional.empty());
@@ -100,14 +99,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         when(taskRepository.findDueToday())
@@ -123,7 +124,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -147,14 +148,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now().plusDays(1)
+                LocalDate.now().plusDays(1),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now().plusDays(3)
+                LocalDate.now().plusDays(3),
+            null
         );
 
         when(taskRepository.findDueUpcoming())
@@ -170,7 +173,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -194,14 +197,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         when(taskRepository.findByTitleContains("title"))
@@ -217,7 +222,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -241,14 +246,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         when(taskRepository.findAll())
@@ -264,7 +271,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -286,7 +293,7 @@ class TaskServiceTest {
         TaskDto output = taskService().getById(task.getId());
         assertThat(output)
                 .isNotNull()
-                .isEqualTo(mapper.toTaskDto(task));
+                .isEqualTo(Mapper.toTaskDto(task));
 
         verify(taskRepository, times(1))
                 .findById(task.getId());
@@ -344,7 +351,7 @@ class TaskServiceTest {
 
     private TaskService taskService() {
         if (taskService == null) {
-            taskService = new TaskService(taskRepository, mapper);
+            taskService = new TaskService(null, taskRepository);
         }
         return taskService;
     }

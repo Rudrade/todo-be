@@ -45,6 +45,10 @@ public class JwtService {
 	}
 	
 	public String extractUsername(String token) {
+		if (token.startsWith("Bearer ")) {
+			token = token.substring(7);
+		}
+
 		return JWT.decode(token).getClaim(CLAIM_USERNAME).asString();
 	}
 	
