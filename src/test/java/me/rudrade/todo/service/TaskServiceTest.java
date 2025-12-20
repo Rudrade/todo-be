@@ -92,6 +92,51 @@ class TaskServiceTest {
         verifyNoMoreInteractions(taskRepository);
     }
 
+    @Test
+    void itShouldSaveTaskWithEmptyListNameAsNull() {
+        // Arrange
+        TaskDto input = new TaskDto(null, "title", "desc", LocalDate.now(), "");
+        Task task = Mapper.toTask(input);
+        task.setId(UUID.randomUUID());
+        task.setUserList(null);
+
+        // We expect the mapper to initially set the name, but the service should null it out
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+
+        // Act
+        TaskDto output = taskService().saveTask(input);
+
+        // Assert
+        assertThat(output.listName()).isNull();
+        verify(taskRepository).save(argThat(t -> t.getUserList() == null));
+        verifyNoInteractions(userListService);
+    }
+
+    @Test
+    void itShouldSaveTaskAndLinkExistingOrNewList() {
+        // Arrange
+        String listName = "Work";
+        TaskDto input = new TaskDto(null, "title", "desc", LocalDate.now(), listName);
+
+        UserList mockList = new UserList();
+        mockList.setName(listName);
+
+        Task savedTask = Mapper.toTask(input);
+        savedTask.setId(UUID.randomUUID());
+        savedTask.setUserList(mockList);
+
+        when(userListService.saveByName(eq(listName), any())).thenReturn(mockList);
+        when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
+
+        // Act
+        TaskDto output = taskService().saveTask(input);
+
+        // Assert
+        assertThat(output.listName()).isEqualTo(listName);
+        verify(userListService).saveByName(eq(listName), any());
+        verify(taskRepository).save(argThat(t -> t.getUserList() != null && t.getUserList().getName().equals(listName)));
+    }
+
     // ### getAll ###
     @Test
     void itShouldGetAllToday() {

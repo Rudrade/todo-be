@@ -45,8 +45,12 @@ public class TaskService {
 
 		Task inputTask = Mapper.toTask(input);
 		if (input.listName() != null) {
-			UserList userList = userListService.saveByName(input.listName(), user);
-			inputTask.setUserList(userList);
+			if (input.listName().isEmpty()) {
+				inputTask.setUserList(null);
+			} else {
+				UserList userList = userListService.saveByName(input.listName(), user);
+				inputTask.setUserList(userList);
+			}
 		}
 		
 		Task task = repository.save(inputTask);
