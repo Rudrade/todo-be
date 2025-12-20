@@ -1,5 +1,6 @@
 package me.rudrade.todo.service;
 
+import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.UserListRepository;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class UserListService {
@@ -19,16 +21,32 @@ public class UserListService {
         this.userListRepository = userListRepository;
         this.authenticationService = authenticationService;
     }
-    public List<String> getUserListsByToken(String authToken) {
+    public List<UserListDto> getUserListsByToken(String authToken) {
         Optional<User> optUser = authenticationService.getUserByAuth(authToken);
-        return optUser.map(user -> user.getUserLists().stream()
-            .map(UserList::getName)
-            .toList())
-            .orElseGet(ArrayList::new);
+        if (optUser.isEmpty())
+            return List.of();
+
+        List<UserListDto> result = new ArrayList<>();
+        optUser.get().getUserLists().forEach(lst ->
+            result.add(new UserListDto(lst.getName(), lst.getColor(), lst.getTasks() == null ? 0 : lst.getTasks().size()))
+        );
+
+        return result;
     }
 
     public UserList saveByName(String listName, User user) {
         Optional<UserList> optList = userListRepository.findByName(listName);
-        return optList.orElseGet(() -> userListRepository.save(new UserList(null, listName, user, null)));
+        String color = generateRandomHexColor();
+
+        return optList.orElseGet(() -> userListRepository.save(new UserList(null, listName, color, user, null)));
+    }
+
+    private String generateRandomHexColor() {
+        int nextInt = ThreadLocalRandom.current().nextInt(0xffffff + 1);
+        return String.format("#%06x", nextInt);
+    }
+
+    public Optional<UserList> findByName(String name) {
+        return userListRepository.findByName(name);
     }
 }

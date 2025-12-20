@@ -3,8 +3,10 @@ package me.rudrade.todo.controller;
 import java.util.List;
 import java.util.UUID;
 
+import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
+import me.rudrade.todo.dto.response.UserListResponse;
 import me.rudrade.todo.service.AuthenticationService;
 import me.rudrade.todo.service.UserListService;
 import org.springframework.data.repository.query.Param;
@@ -52,7 +54,7 @@ public class TodoController {
 	}
 
 	@GetMapping("/lists")
-	public List<String> getUserLists(@RequestHeader("Authorization") @Nonnull String authToken) {
-		return userListService.getUserListsByToken(authToken);
+	public UserListResponse getUserLists(@RequestHeader("Authorization") @Nonnull String authToken) {
+		return new UserListResponse(userListService.getUserListsByToken(authToken));
 	}
 }

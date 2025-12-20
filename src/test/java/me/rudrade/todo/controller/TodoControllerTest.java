@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.dto.UserDto;
+import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.LoginResponse;
 import me.rudrade.todo.dto.response.TaskListResponse;
+import me.rudrade.todo.dto.response.UserListResponse;
 import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
@@ -208,24 +210,23 @@ class TodoControllerTest extends SqlIntegrationTest {
         UserList list1 = new UserList();
         list1.setName("List One");
         list1.setUser(user.get());
+        list1.setColor("random-color");
         listRepository.save(list1);
 
         UserList list2 = new UserList();
         list2.setName("Second AGB");
         list2.setUser(user.get());
+        list2.setColor("random-color");
         listRepository.save(list2);
 
         assertThat(mvc.get().uri(URI_GET_LISTS).headers(getAuthHeader()))
             .hasStatusOk()
             .bodyJson()
-            .convertTo(List.class)
-            .satisfies(lst -> {
-                assertThat(lst).hasSize(2);
-
-                lst.forEach(str -> {
-                    assertThat(str.toString())
-                        .isIn(list1.getName(), list2.getName());
-                });
+            .convertTo(UserListResponse.class)
+            .satisfies(response -> {
+                assertThat(response.lists())
+                    .map(UserListDto::name)
+                    .containsExactlyInAnyOrder("List One", "Second AGB");
             });
     }
 

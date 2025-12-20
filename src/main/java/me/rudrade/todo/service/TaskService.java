@@ -65,8 +65,18 @@ public class TaskService {
             count = repository.countFindDueUpcoming();
 
         } else if (Filter.SEARCH.equals(filter.filter()) && filter.searchTerm() != null) {
-            result = repository.findByTitleContains(filter.searchTerm());
-            count = repository.countByTitleContains(filter.searchTerm());
+			result = repository.findByTitleContains(filter.searchTerm());
+			count = repository.countByTitleContains(filter.searchTerm());
+
+		} else if (Filter.LIST.equals(filter.filter()) && filter.searchTerm() != null) {
+			Optional<UserList> lst = userListService.findByName(filter.searchTerm());
+			if (lst.isPresent()) {
+				result = lst.get().getTasks();
+				count = lst.get().getTasks().size();
+			} else {
+				result = List.of();
+				count = 0;
+			}
 
         } else {
             result = repository.findAll();

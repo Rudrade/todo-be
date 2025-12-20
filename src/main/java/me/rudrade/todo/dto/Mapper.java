@@ -25,7 +25,7 @@ public class Mapper {
 				dto.title(),
 				dto.description(),
 				dto.dueDate(),
-				dto.listName() == null ? null : new UserList(null, dto.listName(), null, null)
+				dto.listName() == null ? null : new UserList(null, dto.listName(), null, null, null)
 				);
 	}
 	

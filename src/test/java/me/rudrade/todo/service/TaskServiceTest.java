@@ -9,6 +9,7 @@ import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.Task;
+import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.TaskRepository;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import java.util.UUID;
 class TaskServiceTest {
 
     @Mock private TaskRepository taskRepository;
+    @Mock private UserListService userListService;
 
     private TaskService taskService;
 
@@ -141,6 +143,27 @@ class TaskServiceTest {
     }
 
     @Test
+    void itShouldReturnEmptyListWhenListNotFoundByName() {
+        // Arrange
+        String nonExistentListName = "non-existent-list";
+        TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.LIST, nonExistentListName);
+
+        when(userListService.findByName(nonExistentListName))
+            .thenReturn(Optional.empty());
+
+        // Act
+        TaskListResponse output = taskService().getAll(filter);
+
+        // Assert
+        assertThat(output).isNotNull();
+        assertThat(output.count()).isZero();
+        assertThat(output.tasks()).isEmpty();
+
+        verify(userListService, times(1)).findByName(nonExistentListName);
+        verifyNoInteractions(taskRepository);
+    }
+
+    @Test
     void itShouldGetAllUpcoming() {
         TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.UPCOMING, null);
 
@@ -236,6 +259,55 @@ class TaskServiceTest {
         verify(taskRepository, times(1)).findByTitleContains("title");
         verify(taskRepository, times(1)).countByTitleContains("title");
         verifyNoMoreInteractions(taskRepository);
+    }
+
+    @Test
+    void itShouldGetAllByList() {
+        TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.LIST, "test-list");
+
+        UserList lst = new UserList();
+        lst.setName("test-list");
+
+        Task task1 = new Task(
+            UUID.randomUUID(),
+            "title 1",
+            "description 1",
+            LocalDate.now(),
+            lst
+        );
+
+        Task task2 = new Task(
+            UUID.randomUUID(),
+            "title 2",
+            "description 2",
+            LocalDate.now(),
+            lst
+        );
+
+        lst.setTasks(List.of(task1, task2));
+
+        when(userListService.findByName("test-list"))
+            .thenReturn(Optional.of(lst));
+
+        TaskListResponse output = taskService().getAll(filter);
+        assertThat(output)
+            .isNotNull()
+            .hasNoNullFieldsOrProperties();
+
+        assertThat(output.tasks()).hasSize((int) output.count());
+
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
+        assertThat(output.tasks())
+            .containsExactlyInAnyOrderElementsOf(lstDto);
+
+        assertThat(output.tasks())
+            .allSatisfy(arg -> {
+                assertThat(arg.listName())
+                    .isNotNull()
+                    .contains("test-list");
+            });
+
+        verifyNoInteractions(taskRepository);
     }
 
     @Test
@@ -351,7 +423,7 @@ class TaskServiceTest {
 
     private TaskService taskService() {
         if (taskService == null) {
-            taskService = new TaskService(null, taskRepository);
+            taskService = new TaskService(userListService, taskRepository);
         }
         return taskService;
     }

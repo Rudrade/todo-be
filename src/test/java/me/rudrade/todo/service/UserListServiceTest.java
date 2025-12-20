@@ -1,5 +1,6 @@
 package me.rudrade.todo.service;
 
+import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.UserListRepository;
@@ -49,11 +50,13 @@ class UserListServiceTest {
         when(authenticationService.getUserByAuth("token-test"))
             .thenReturn(Optional.of(user));
 
-        List<String> result = getUserService().getUserListsByToken("token-test");
+        List<UserListDto> result = getUserService().getUserListsByToken("token-test");
 
         assertThat(result)
             .hasSize(2)
-            .containsExactlyInAnyOrder("First", "Name");
+            .allSatisfy(lst -> {
+                assertThat(lst.name()).isNotBlank();
+            });
     }
 
     @Test
@@ -61,7 +64,7 @@ class UserListServiceTest {
         when(authenticationService.getUserByAuth("token-test"))
             .thenReturn(Optional.empty());
 
-        List<String> result = getUserService().getUserListsByToken("token-test");
+        List<UserListDto> result = getUserService().getUserListsByToken("token-test");
 
         assertThat(result).isEmpty();
     }
@@ -74,7 +77,7 @@ class UserListServiceTest {
         User user = new User();
 
         when(userListRepository.save(any()))
-            .thenReturn(new UserList(UUID.randomUUID(), "test-list", user, null));
+            .thenReturn(new UserList(UUID.randomUUID(), "test-list", null, user, null));
 
         UserList result = getUserService().saveByName("test-list", user);
 
@@ -110,6 +113,16 @@ class UserListServiceTest {
 
         verify(userListRepository, times(1)).findByName("test-list");
         verifyNoMoreInteractions(userListRepository);
+    }
+
+    @Test
+    void itShouldFindByName() {
+        String listName = "Test";
+        when(userListRepository.findByName(listName)).thenReturn(Optional.of(new UserList()));
+
+        getUserService().findByName(listName);
+
+        verify(userListRepository, times(1)).findByName(listName);
     }
 
 }

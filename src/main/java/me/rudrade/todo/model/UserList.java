@@ -25,10 +25,13 @@ public class UserList {
     @Column(name = "NAME", nullable = false)
     private String name;
 
+    @Column(name = "COLOR", nullable = false)
+    private String color;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_ID")
     private User user;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "userList", cascade = {CascadeType.ALL})
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "userList")
     private List<Task> tasks;
 }

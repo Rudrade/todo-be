@@ -30,7 +30,7 @@ public class Task {
 	@Column(name = "due_date")
 	private LocalDate dueDate;
 
-	@ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_list_id")
 	private UserList userList;
 	

@@ -29,7 +29,7 @@ public class User implements UserDetails {
 	@Column(nullable = false, unique = true)
 	private String username;
 
-	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.ALL)
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
 	private List<UserList> userLists;
 
 	@Override
