@@ -1,19 +1,15 @@
 package me.rudrade.todo.model;
 
+import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,7 +19,8 @@ import lombok.Setter;
 @Setter
 public class User implements UserDetails {
 	
-	private static final long serialVersionUID = -4583113882616923801L;
+	@Serial
+    private static final long serialVersionUID = -4583113882616923801L;
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
@@ -31,6 +28,9 @@ public class User implements UserDetails {
 	
 	@Column(nullable = false, unique = true)
 	private String username;
+
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+	private List<UserList> userLists;
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {

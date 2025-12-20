@@ -9,6 +9,7 @@ import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.Task;
+import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.TaskRepository;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Test;
@@ -24,19 +25,19 @@ import java.util.UUID;
 class TaskServiceTest {
 
     @Mock private TaskRepository taskRepository;
+    @Mock private UserListService userListService;
 
-    private final Mapper mapper = new Mapper();
     private TaskService taskService;
 
     // ### saveTask ###
     @Test
     void itShouldSaveNewTask() {
-        TaskDto input = new TaskDto(null, "title 123", "description 123", LocalDate.now());
+        TaskDto input = new TaskDto(null, "title 123", "description 123", LocalDate.now(), null);
 
-        Task task = mapper.toTask(input);
+        Task task = Mapper.toTask(input);
         task.setId(UUID.randomUUID());
 
-        when(taskRepository.save(mapper.toTask(input)))
+        when(taskRepository.save(Mapper.toTask(input)))
                 .thenReturn(task);
 
         TaskDto output = taskService().saveTask(input);
@@ -46,21 +47,21 @@ class TaskServiceTest {
                 .usingRecursiveComparison().ignoringFields("id").isEqualTo(input);
         assertThat(output.id()).isNotNull();
 
-        verify(taskRepository, times(1)).save(mapper.toTask(input));
+        verify(taskRepository, times(1)).save(Mapper.toTask(input));
         verifyNoMoreInteractions(taskRepository);
     }
 
     @Test
     void itShouldSaveExistingTask() {
-        TaskDto input = new TaskDto(UUID.randomUUID(), "title 321", "description 321", LocalDate.now());
+        TaskDto input = new TaskDto(UUID.randomUUID(), "title 321", "description 321", LocalDate.now(), null);
 
         Task task = new Task();
         task.setId(input.id());
         when(taskRepository.findById(input.id()))
                 .thenReturn(Optional.of(task));
 
-        Task savedTask = mapper.toTask(input);
-        when(taskRepository.save(mapper.toTask(input)))
+        Task savedTask = Mapper.toTask(input);
+        when(taskRepository.save(Mapper.toTask(input)))
                 .thenReturn(savedTask);
 
         TaskDto output = taskService().saveTask(input);
@@ -71,13 +72,13 @@ class TaskServiceTest {
         assertThat(output.id()).isNotNull();
 
         verify(taskRepository, times(1)).findById(input.id());
-        verify(taskRepository, times(1)).save(mapper.toTask(input));
+        verify(taskRepository, times(1)).save(Mapper.toTask(input));
         verifyNoMoreInteractions(taskRepository);
     }
 
     @Test
     void itShouldNotSaveTaskWithNonExistingId() {
-        TaskDto input = new TaskDto(UUID.randomUUID(), "title 123", "description 123", LocalDate.now());
+        TaskDto input = new TaskDto(UUID.randomUUID(), "title 123", "description 123", LocalDate.now(), null);
 
         when(taskRepository.findById(input.id()))
                 .thenReturn(Optional.empty());
@@ -91,6 +92,51 @@ class TaskServiceTest {
         verifyNoMoreInteractions(taskRepository);
     }
 
+    @Test
+    void itShouldSaveTaskWithEmptyListNameAsNull() {
+        // Arrange
+        TaskDto input = new TaskDto(null, "title", "desc", LocalDate.now(), "");
+        Task task = Mapper.toTask(input);
+        task.setId(UUID.randomUUID());
+        task.setUserList(null);
+
+        // We expect the mapper to initially set the name, but the service should null it out
+        when(taskRepository.save(any(Task.class))).thenReturn(task);
+
+        // Act
+        TaskDto output = taskService().saveTask(input);
+
+        // Assert
+        assertThat(output.listName()).isNull();
+        verify(taskRepository).save(argThat(t -> t.getUserList() == null));
+        verifyNoInteractions(userListService);
+    }
+
+    @Test
+    void itShouldSaveTaskAndLinkExistingOrNewList() {
+        // Arrange
+        String listName = "Work";
+        TaskDto input = new TaskDto(null, "title", "desc", LocalDate.now(), listName);
+
+        UserList mockList = new UserList();
+        mockList.setName(listName);
+
+        Task savedTask = Mapper.toTask(input);
+        savedTask.setId(UUID.randomUUID());
+        savedTask.setUserList(mockList);
+
+        when(userListService.saveByName(eq(listName), any())).thenReturn(mockList);
+        when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
+
+        // Act
+        TaskDto output = taskService().saveTask(input);
+
+        // Assert
+        assertThat(output.listName()).isEqualTo(listName);
+        verify(userListService).saveByName(eq(listName), any());
+        verify(taskRepository).save(argThat(t -> t.getUserList() != null && t.getUserList().getName().equals(listName)));
+    }
+
     // ### getAll ###
     @Test
     void itShouldGetAllToday() {
@@ -100,14 +146,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         when(taskRepository.findDueToday())
@@ -123,7 +171,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -140,6 +188,27 @@ class TaskServiceTest {
     }
 
     @Test
+    void itShouldReturnEmptyListWhenListNotFoundByName() {
+        // Arrange
+        String nonExistentListName = "non-existent-list";
+        TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.LIST, nonExistentListName);
+
+        when(userListService.findByName(nonExistentListName))
+            .thenReturn(Optional.empty());
+
+        // Act
+        TaskListResponse output = taskService().getAll(filter);
+
+        // Assert
+        assertThat(output).isNotNull();
+        assertThat(output.count()).isZero();
+        assertThat(output.tasks()).isEmpty();
+
+        verify(userListService, times(1)).findByName(nonExistentListName);
+        verifyNoInteractions(taskRepository);
+    }
+
+    @Test
     void itShouldGetAllUpcoming() {
         TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.UPCOMING, null);
 
@@ -147,14 +216,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now().plusDays(1)
+                LocalDate.now().plusDays(1),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now().plusDays(3)
+                LocalDate.now().plusDays(3),
+            null
         );
 
         when(taskRepository.findDueUpcoming())
@@ -170,7 +241,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -194,14 +265,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         when(taskRepository.findByTitleContains("title"))
@@ -217,7 +290,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -234,6 +307,55 @@ class TaskServiceTest {
     }
 
     @Test
+    void itShouldGetAllByList() {
+        TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.LIST, "test-list");
+
+        UserList lst = new UserList();
+        lst.setName("test-list");
+
+        Task task1 = new Task(
+            UUID.randomUUID(),
+            "title 1",
+            "description 1",
+            LocalDate.now(),
+            lst
+        );
+
+        Task task2 = new Task(
+            UUID.randomUUID(),
+            "title 2",
+            "description 2",
+            LocalDate.now(),
+            lst
+        );
+
+        lst.setTasks(List.of(task1, task2));
+
+        when(userListService.findByName("test-list"))
+            .thenReturn(Optional.of(lst));
+
+        TaskListResponse output = taskService().getAll(filter);
+        assertThat(output)
+            .isNotNull()
+            .hasNoNullFieldsOrProperties();
+
+        assertThat(output.tasks()).hasSize((int) output.count());
+
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
+        assertThat(output.tasks())
+            .containsExactlyInAnyOrderElementsOf(lstDto);
+
+        assertThat(output.tasks())
+            .allSatisfy(arg -> {
+                assertThat(arg.listName())
+                    .isNotNull()
+                    .contains("test-list");
+            });
+
+        verifyNoInteractions(taskRepository);
+    }
+
+    @Test
     void itShouldGetAll() {
         TaskListFilter filter = new TaskListFilter(null, null);
 
@@ -241,14 +363,16 @@ class TaskServiceTest {
                 UUID.randomUUID(),
                 "title 1",
                 "description 1",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         Task task2 = new Task(
                 UUID.randomUUID(),
                 "title 2",
                 "description 2",
-                LocalDate.now()
+                LocalDate.now(),
+            null
         );
 
         when(taskRepository.findAll())
@@ -264,7 +388,7 @@ class TaskServiceTest {
 
         assertThat(output.tasks()).hasSize((int) output.count());
 
-        List<TaskDto> lstDto = List.of(mapper.toTaskDto(task1), mapper.toTaskDto(task2));
+        List<TaskDto> lstDto = List.of(Mapper.toTaskDto(task1), Mapper.toTaskDto(task2));
         assertThat(output.tasks())
                 .containsExactlyInAnyOrderElementsOf(lstDto);
 
@@ -286,7 +410,7 @@ class TaskServiceTest {
         TaskDto output = taskService().getById(task.getId());
         assertThat(output)
                 .isNotNull()
-                .isEqualTo(mapper.toTaskDto(task));
+                .isEqualTo(Mapper.toTaskDto(task));
 
         verify(taskRepository, times(1))
                 .findById(task.getId());
@@ -344,7 +468,7 @@ class TaskServiceTest {
 
     private TaskService taskService() {
         if (taskService == null) {
-            taskService = new TaskService(taskRepository, mapper);
+            taskService = new TaskService(userListService, taskRepository);
         }
         return taskService;
     }

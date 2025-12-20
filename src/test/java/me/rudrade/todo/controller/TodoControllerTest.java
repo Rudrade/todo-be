@@ -4,10 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.dto.UserDto;
+import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.LoginResponse;
 import me.rudrade.todo.dto.response.TaskListResponse;
+import me.rudrade.todo.dto.response.UserListResponse;
 import me.rudrade.todo.exception.TaskNotFoundException;
+import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.UserList;
+import me.rudrade.todo.repository.UserListRepository;
+import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.service.TaskService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +27,11 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,14 +43,17 @@ class TodoControllerTest extends SqlIntegrationTest {
     private static final String URI_SAVE_TASK = "/todo/api/task/save";
     private static final String URI_GET_DETAIL = "/todo/api/task/detail/{id}";
     private static final String URI_DELETE = "/todo/api/task/remove/{id}";
+    private static final String URI_GET_LISTS= "/todo/api/task/lists";
 
     private final ObjectMapper mapper = new ObjectMapper();
     {
         mapper.findAndRegisterModules();
     }
 
-    @Autowired MockMvcTester mvc;
-    @Autowired TaskService taskService;
+    @Autowired private MockMvcTester mvc;
+    @Autowired private TaskService taskService;
+    @Autowired private UserRepository userRepository;
+    @Autowired private UserListRepository listRepository;
 
     @Test
     void itShouldSaveTask() throws Exception {
@@ -51,7 +61,8 @@ class TodoControllerTest extends SqlIntegrationTest {
             null,
             "title insert",
             "description new",
-            LocalDate.now()
+            LocalDate.now(),
+            null
         );
 
         assertThat(mvc.post().uri(URI_SAVE_TASK)
@@ -75,7 +86,8 @@ class TodoControllerTest extends SqlIntegrationTest {
             UUID.randomUUID(),
             "title insert",
             "description new",
-            LocalDate.now()
+            LocalDate.now(),
+            null
         );
 
         assertThat(mvc.post().uri(URI_SAVE_TASK)
@@ -142,9 +154,10 @@ class TodoControllerTest extends SqlIntegrationTest {
             null,
             "title insert",
             "description new",
-            LocalDate.now()
+            LocalDate.now(),
+            null
         );
-        TaskDto savedTask = taskService.saveTask(input);
+        TaskDto savedTask = taskService.saveTask(input, null);
 
         assertThat(mvc.get().uri(URI_GET_DETAIL, savedTask.id().toString())
             .headers(getAuthHeader())
@@ -166,9 +179,10 @@ class TodoControllerTest extends SqlIntegrationTest {
             null,
             "title insert",
             "description new",
-            LocalDate.now()
+            LocalDate.now(),
+            null
         );
-        TaskDto savedTask = taskService.saveTask(input);
+        TaskDto savedTask = taskService.saveTask(input, null);
 
         assertThat(mvc.delete().uri(URI_DELETE, savedTask.id().toString())
             .headers(getAuthHeader())
@@ -183,6 +197,37 @@ class TodoControllerTest extends SqlIntegrationTest {
         assertThat(mvc.delete().uri(URI_DELETE, UUID.randomUUID().toString())
             .headers(getAuthHeader())
         ).hasStatus(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void itShouldReturnUserLists() throws Exception {
+        Optional<User> user = userRepository.findByUsername("valid-user");
+        if (user.isEmpty()) {
+            fail("Missing user");
+            return;
+        }
+
+        UserList list1 = new UserList();
+        list1.setName("List One");
+        list1.setUser(user.get());
+        list1.setColor("random-color");
+        listRepository.save(list1);
+
+        UserList list2 = new UserList();
+        list2.setName("Second AGB");
+        list2.setUser(user.get());
+        list2.setColor("random-color");
+        listRepository.save(list2);
+
+        assertThat(mvc.get().uri(URI_GET_LISTS).headers(getAuthHeader()))
+            .hasStatusOk()
+            .bodyJson()
+            .convertTo(UserListResponse.class)
+            .satisfies(response -> {
+                assertThat(response.lists())
+                    .map(UserListDto::name)
+                    .containsExactlyInAnyOrder("List One", "Second AGB");
+            });
     }
 
     private static String authToken;
