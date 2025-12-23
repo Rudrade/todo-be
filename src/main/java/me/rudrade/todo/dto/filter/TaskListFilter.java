@@ -6,7 +6,8 @@ public record TaskListFilter(Filter filter, String searchTerm) {
         UPCOMING,
         TODAY,
         SEARCH,
-        LIST
+        LIST,
+        TAG
     }
 }
 

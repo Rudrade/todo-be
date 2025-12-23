@@ -32,6 +32,9 @@ public class User implements UserDetails {
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
 	private List<UserList> userLists;
 
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+	private List<Tag> tags;
+
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		return List.of();

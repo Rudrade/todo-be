@@ -1,9 +1,7 @@
 package me.rudrade.todo.controller;
 
-import java.util.List;
 import java.util.UUID;
 
-import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.dto.response.UserListResponse;

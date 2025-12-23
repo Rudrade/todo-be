@@ -1,6 +1,7 @@
 package me.rudrade.todo.model;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,7 +14,6 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class Task {
 	
 	@Id
@@ -33,7 +33,28 @@ public class Task {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_list_id")
 	private UserList userList;
-	
+
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(
+		name = "TAG_TASK",
+		joinColumns = @JoinColumn(name = "TAG_ID"),
+		inverseJoinColumns = @JoinColumn(name = "TASK_ID")
+	)
+	private List<Tag> tags;
+
+
+	@Override
+	public String toString() {
+		return "Task{" +
+			"id=" + id +
+			", title='" + title + '\'' +
+			", description='" + description + '\'' +
+			", dueDate=" + dueDate +
+			", userList=" + userList +
+			", tags=" + tags +
+			'}';
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (o == null || getClass() != o.getClass()) return false;

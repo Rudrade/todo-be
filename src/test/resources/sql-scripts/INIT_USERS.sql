@@ -1,3 +1,4 @@
+DELETE FROM tag;
 DELETE FROM user_list;
 DELETE FROM user;
 
