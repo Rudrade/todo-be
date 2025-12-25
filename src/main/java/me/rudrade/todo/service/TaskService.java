@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import me.rudrade.todo.dto.TagDto;
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
+import me.rudrade.todo.model.Tag;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 import org.springframework.stereotype.Service;
@@ -20,14 +22,16 @@ import me.rudrade.todo.repository.TaskRepository;
 import me.rudrade.todo.dto.filter.TaskListFilter.Filter;
 
 @Service
-public class TaskService {
+public class TaskService extends ServiceUtil {
 
 	private final UserListService userListService;
 	private final TaskRepository repository;
+	private final TagService tagService;
 
-	public TaskService(UserListService userListService, TaskRepository repository) {
+	public TaskService(UserListService userListService, TaskRepository repository, TagService tagService) {
 		this.userListService = userListService;
 		this.repository = repository;
+		this.tagService = tagService;
 	}
 
 	public TaskDto saveTask(@Nonnull TaskDto input) {
@@ -52,7 +56,20 @@ public class TaskService {
 				inputTask.setUserList(userList);
 			}
 		}
-		
+
+		// Find all tasks by name and user
+		List<Tag> lstTags = null;
+		if (input.tags() != null) {
+			// If missing some, create them
+			lstTags = new ArrayList<>();
+			for (TagDto tag : input.tags()) {
+				lstTags.add(tagService.findOrCreateByUser(user, Mapper.toTag(tag)));
+			}
+
+		}
+		// Associate final list of tags to task
+		inputTask.setTags(lstTags);
+
 		Task task = repository.save(inputTask);
 		return Mapper.toTaskDto(task);
 	}
@@ -77,6 +94,16 @@ public class TaskService {
 			if (lst.isPresent()) {
 				result = lst.get().getTasks();
 				count = lst.get().getTasks().size();
+			} else {
+				result = List.of();
+				count = 0;
+			}
+
+		} else if (Filter.TAG.equals(filter.filter()) && filter.searchTerm() != null) {
+			Optional<Tag> tag = tagService.findByName(filter.searchTerm());
+			if (tag.isPresent()) {
+				result = tag.get().getTasks();
+				count = tag.get().getTasks().size();
 			} else {
 				result = List.of();
 				count = 0;
