@@ -22,7 +22,7 @@ import me.rudrade.todo.repository.TaskRepository;
 import me.rudrade.todo.dto.filter.TaskListFilter.Filter;
 
 @Service
-public class TaskService {
+public class TaskService extends ServiceUtil {
 
 	private final UserListService userListService;
 	private final TaskRepository repository;

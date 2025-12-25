@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class TagService {
+public class TagService extends ServiceUtil {
 
     private final TagRepository tagRepository;
 
@@ -29,7 +29,13 @@ public class TagService {
 
     public Tag findOrCreateByUser(@NonNull User user, @NonNull Tag tag) {
         Optional<Tag> optionalTag = tagRepository.findByNameAndUserId(tag.getName(), user.getId());
-        return optionalTag.orElseGet(() -> save(tag));
+        return optionalTag.orElseGet(() -> {
+            if (tag.getColor() == null || tag.getColor().isEmpty()) {
+                tag.setColor(generateRandomHexColor());
+                tag.setUser(user);
+            }
+          return save(tag);
+        });
     }
 
     public void deleteById(UUID id) {

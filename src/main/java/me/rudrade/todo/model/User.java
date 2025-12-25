@@ -29,10 +29,10 @@ public class User implements UserDetails {
 	@Column(nullable = false, unique = true)
 	private String username;
 
-	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
 	private List<UserList> userLists;
 
-	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
 	private List<Tag> tags;
 
 	@Override

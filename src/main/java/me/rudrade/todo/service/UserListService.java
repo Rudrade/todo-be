@@ -9,10 +9,9 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
-public class UserListService {
+public class UserListService extends ServiceUtil {
 
     private final UserListRepository userListRepository;
     private final AuthenticationService authenticationService;
@@ -41,10 +40,7 @@ public class UserListService {
         return optList.orElseGet(() -> userListRepository.save(new UserList(null, listName, color, user, null)));
     }
 
-    private String generateRandomHexColor() {
-        int nextInt = ThreadLocalRandom.current().nextInt(0xffffff + 1);
-        return String.format("#%06x", nextInt);
-    }
+
 
     public Optional<UserList> findByName(String name) {
         return userListRepository.findByName(name);

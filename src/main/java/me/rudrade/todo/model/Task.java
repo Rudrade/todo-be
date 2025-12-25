@@ -36,9 +36,9 @@ public class Task {
 
 	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(
-		name = "TAG_TASK",
-		joinColumns = @JoinColumn(name = "TAG_ID"),
-		inverseJoinColumns = @JoinColumn(name = "TASK_ID")
+		name = "tag_task",
+		joinColumns = @JoinColumn(name = "task_id"),
+		inverseJoinColumns = @JoinColumn(name = "tag_id")
 	)
 	private List<Tag> tags;
 
