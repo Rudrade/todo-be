@@ -15,8 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureWebTestClient
 class HealthControllerTest extends SqlIntegrationTest {
 
-    @Autowired
-    MockMvcTester mvc;
+    @Autowired private MockMvcTester mvc;
 
     @Test
     void itShouldReturnOk() {

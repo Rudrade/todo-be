@@ -1,5 +1,10 @@
 package me.rudrade.todo.config;
 
+import me.rudrade.todo.dto.UserDto;
+import me.rudrade.todo.model.User;
+import me.rudrade.todo.repository.UserRepository;
+import me.rudrade.todo.service.AuthenticationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -7,9 +12,14 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.Optional;
+
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
 public abstract class SqlIntegrationTest {
+
+    public static final String TEST_USERNAME = "valid-user";
+    public static final String TEST_PASSWORD = "test123";
 
     @Container
     static SqlContainer sqlContainer = new SqlContainer();
@@ -29,8 +39,22 @@ public abstract class SqlIntegrationTest {
         registry.add("db_password", sqlContainer::getPassword);
     }
 
+    @Autowired private AuthenticationService authenticationService;
+    @Autowired private UserRepository userRepository;
+
+    public User getTestUser() {
+        Optional<User> user = userRepository.findByUsername(TEST_USERNAME);
+        if (user.isEmpty()) {
+            authenticationService.createUser(new UserDto(TEST_USERNAME, TEST_PASSWORD));
+            user = userRepository.findByUsername(TEST_USERNAME);
+        }
+
+        return user.orElseThrow();
+    }
+
 }
 
+@SuppressWarnings("rawtypes")
 class SqlContainer extends MySQLContainer {
 
     SqlContainer() {

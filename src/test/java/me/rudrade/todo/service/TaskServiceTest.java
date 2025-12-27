@@ -459,6 +459,22 @@ class TaskServiceTest {
         verifyNoInteractions(taskRepository);
     }
 
+    @Test
+    void itShouldReturnEmptyListWhenTagNotFoundByName() {
+        String tagName = "unknown-tag";
+        TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.TAG, tagName);
+
+        when(tagService.findByName(tagName)).thenReturn(Optional.empty());
+
+        TaskListResponse output = taskService().getAll(filter);
+
+        assertThat(output.count()).isZero();
+        assertThat(output.tasks()).isEmpty();
+
+        verify(tagService, times(1)).findByName(tagName);
+        verifyNoInteractions(taskRepository);
+    }
+
     // ### getById ###
     @Test
     void itShouldGetById() {

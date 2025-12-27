@@ -1,6 +1,5 @@
 package me.rudrade.todo.service;
 
-import lombok.NonNull;
 import me.rudrade.todo.model.Tag;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.TagRepository;
@@ -19,15 +18,15 @@ public class TagService extends ServiceUtil {
         this.tagRepository = tagRepository;
     }
 
-    public Tag save(@NonNull Tag tag) {
+    public Tag save(Tag tag) {
         return tagRepository.save(tag);
     }
 
-    public List<Tag> findByUser(@NonNull User user) {
+    public List<Tag> findByUser(User user) {
         return tagRepository.findByUserId(user.getId());
     }
 
-    public Tag findOrCreateByUser(@NonNull User user, @NonNull Tag tag) {
+    public Tag findOrCreateByUser(User user, Tag tag) {
         Optional<Tag> optionalTag = tagRepository.findByNameAndUserId(tag.getName(), user.getId());
         return optionalTag.orElseGet(() -> {
             if (tag.getColor() == null || tag.getColor().isEmpty()) {

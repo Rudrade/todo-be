@@ -2,9 +2,12 @@ package me.rudrade.todo.config;
 
 import java.util.List;
 
+import me.rudrade.todo.model.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -34,18 +37,26 @@ public class SecurityConfig {
 		this.authenticationProvider = authenticationProvider;
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
 	}
+
+	@Bean
+	RoleHierarchy roleHierarchy() {
+		return RoleHierarchyImpl.withDefaultRolePrefix()
+			.role(User.Role.ROLE_ADMIN.getSuffix()).implies(User.Role.ROLE_USER.getSuffix())
+			.build();
+	}
 	
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-
 		return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorizeHttpRequests -> {
                     authorizeHttpRequests
-                            .requestMatchers("/health/**").permitAll()
-                        .requestMatchers("/todo/auth/**").permitAll()
-                        .requestMatchers("/todo/api/**").authenticated();
+						.requestMatchers("/health/**").permitAll()
+                        .requestMatchers("/todo/auth/login").permitAll()
+						.requestMatchers("/todo/auth/users").hasAuthority(User.Role.ROLE_ADMIN.name())
+						.requestMatchers("/todo/auth/users/new").permitAll()
+                        .requestMatchers("/todo/api/tag/**").hasAuthority(User.Role.ROLE_USER.name())
+						.requestMatchers("/todo/api/task/**").hasAuthority(User.Role.ROLE_USER.name());
 
                     if (!"prod".equals(currentProfile)) {
                         authorizeHttpRequests.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();

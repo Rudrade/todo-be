@@ -7,10 +7,13 @@ import me.rudrade.todo.model.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-@DataJpaTest
+@DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 class UserRepositoryTest extends  SqlIntegrationTest {
 
     @Autowired private UserRepository repository;
@@ -19,6 +22,8 @@ class UserRepositoryTest extends  SqlIntegrationTest {
     void itShouldFindByUsername() {
         User user = new User();
         user.setUsername("test-user");
+        user.setPassword("");
+        user.setRole(User.Role.ROLE_USER);
 
         User savedUser = repository.save(user);
 

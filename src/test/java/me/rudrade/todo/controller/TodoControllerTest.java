@@ -1,6 +1,6 @@
 package me.rudrade.todo.controller;
 
-import me.rudrade.todo.config.ControllerIntegrationTest;
+import me.rudrade.todo.config.ControllerIntegration;
 import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.dto.filter.TaskListFilter;
@@ -10,7 +10,6 @@ import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.UserListRepository;
-import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.service.TaskService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +19,12 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 
-@Sql({"/sql-scripts/INIT_USERS.sql", "/sql-scripts/INIT_TASKS.sql"})
-class TodoControllerTest extends ControllerIntegrationTest {
+@Sql({"/sql-scripts/INIT_TASKS.sql"})
+class TodoControllerTest extends ControllerIntegration {
 
     private static final String URI_GET_ALL = "/todo/api/task";
     private static final String URI_SAVE_TASK = "/todo/api/task/save";
@@ -35,7 +33,6 @@ class TodoControllerTest extends ControllerIntegrationTest {
     private static final String URI_GET_LISTS= "/todo/api/task/lists";
 
     @Autowired private TaskService taskService;
-    @Autowired private UserRepository userRepository;
     @Autowired private UserListRepository listRepository;
 
     @Autowired private MockMvcTester mvc;
@@ -86,7 +83,7 @@ class TodoControllerTest extends ControllerIntegrationTest {
     }
 
     @Test
-    void itShouldGetAll() throws Exception {
+    void itShouldGetAll() {
         assertThat(mvc.get().uri(URI_GET_ALL)
             .headers(getAuthHeader())
         ).hasStatusOk()
@@ -98,7 +95,7 @@ class TodoControllerTest extends ControllerIntegrationTest {
     }
 
     @Test
-    void itShouldGetAllWithFilter() throws Exception {
+    void itShouldGetAllWithFilter() {
         assertThat(mvc.get().uri(URI_GET_ALL)
             .headers(getAuthHeader())
             .queryParam("filter", TaskListFilter.Filter.TODAY.name())
@@ -117,7 +114,7 @@ class TodoControllerTest extends ControllerIntegrationTest {
     }
 
     @Test
-    void itShouldGetAllWithFilterAndSearchTerm() throws Exception {
+    void itShouldGetAllWithFilterAndSearchTerm() {
         assertThat(mvc.get().uri(URI_GET_ALL)
             .headers(getAuthHeader())
             .queryParam("filter", TaskListFilter.Filter.SEARCH.name())
@@ -136,7 +133,7 @@ class TodoControllerTest extends ControllerIntegrationTest {
     }
 
     @Test
-    void itShouldGetDetail() throws Exception {
+    void itShouldGetDetail() {
         TaskDto input = new TaskDto(
             null,
             "title insert",
@@ -155,14 +152,14 @@ class TodoControllerTest extends ControllerIntegrationTest {
     }
 
     @Test
-    void itShouldNotGetDetailWhenDoesntExist() throws Exception {
+    void itShouldNotGetDetailWhenDoesntExist() {
         assertThat(mvc.get().uri(URI_GET_DETAIL, UUID.randomUUID().toString())
             .headers(getAuthHeader())
         ).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    void itShouldDeleteById() throws Exception {
+    void itShouldDeleteById() {
         TaskDto input = new TaskDto(
             null,
             "title insert",
@@ -182,29 +179,25 @@ class TodoControllerTest extends ControllerIntegrationTest {
     }
 
     @Test
-    void itShouldReturnErrorWhenDeleteDoesntExist() throws Exception {
+    void itShouldReturnErrorWhenDeleteDoesntExist() {
         assertThat(mvc.delete().uri(URI_DELETE, UUID.randomUUID().toString())
             .headers(getAuthHeader())
         ).hasStatus(HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    void itShouldReturnUserLists() throws Exception {
-        Optional<User> user = userRepository.findByUsername("valid-user");
-        if (user.isEmpty()) {
-            fail("Missing user");
-            return;
-        }
+    void itShouldReturnUserLists() {
+        User user = getTestUser();
 
         UserList list1 = new UserList();
         list1.setName("List One");
-        list1.setUser(user.get());
+        list1.setUser(user);
         list1.setColor("random-color");
         listRepository.save(list1);
 
         UserList list2 = new UserList();
         list2.setName("Second AGB");
-        list2.setUser(user.get());
+        list2.setUser(user);
         list2.setColor("random-color");
         listRepository.save(list2);
 
@@ -218,6 +211,5 @@ class TodoControllerTest extends ControllerIntegrationTest {
                     .containsExactlyInAnyOrder("List One", "Second AGB");
             });
     }
-
 
 }

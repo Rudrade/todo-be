@@ -42,14 +42,6 @@ class TagServiceTest {
     }
 
     @Test
-    void itShouldThrowNullWhenSavingNull() {
-        assertThatThrownBy(() -> getTagService().save(null))
-            .isInstanceOf(NullPointerException.class);
-
-        verifyNoInteractions(tagRepository);
-    }
-
-    @Test
     void itShouldFindByUser() {
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -124,6 +116,58 @@ class TagServiceTest {
         assertThat(result)
             .usingRecursiveComparison()
             .ignoringFields("id")
+            .isEqualTo(tag);
+
+        verify(tagRepository, times(1)).findByNameAndUserId(tag.getName(), user.getId());
+        verify(tagRepository, times(1)).save(tag);
+        verifyNoMoreInteractions(tagRepository);
+    }
+
+    @Test
+    void itShouldFindOrCreateByUserWhenColorIsNull() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+
+        Tag tag = new Tag(null, "tag-test", null, null, null);
+
+        when(tagRepository.findByNameAndUserId(tag.getName(), user.getId()))
+            .thenReturn(Optional.empty());
+        when(tagRepository.save(tag))
+            .thenReturn(tag);
+
+        Tag result = getTagService().findOrCreateByUser(user, tag);
+
+        assertThat(tag.getColor())
+            .matches("^#[0-9a-fA-F]{6}$");
+        assertThat(tag.getUser())
+            .isEqualTo(user);
+        assertThat(result)
+            .isEqualTo(tag);
+
+        verify(tagRepository, times(1)).findByNameAndUserId(tag.getName(), user.getId());
+        verify(tagRepository, times(1)).save(tag);
+        verifyNoMoreInteractions(tagRepository);
+    }
+
+    @Test
+    void itShouldFindOrCreateByUserWhenColorIsEmpty() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+
+        Tag tag = new Tag(null, "tag-test", "", null, null);
+
+        when(tagRepository.findByNameAndUserId(tag.getName(), user.getId()))
+            .thenReturn(Optional.empty());
+        when(tagRepository.save(tag))
+            .thenReturn(tag);
+
+        Tag result = getTagService().findOrCreateByUser(user, tag);
+
+        assertThat(tag.getColor())
+            .matches("^#[0-9a-fA-F]{6}$");
+        assertThat(tag.getUser())
+            .isEqualTo(user);
+        assertThat(result)
             .isEqualTo(tag);
 
         verify(tagRepository, times(1)).findByNameAndUserId(tag.getName(), user.getId());

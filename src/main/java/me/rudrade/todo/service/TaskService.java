@@ -13,7 +13,6 @@ import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Nonnull;
 import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.exception.TaskNotFoundException;
@@ -34,11 +33,11 @@ public class TaskService extends ServiceUtil {
 		this.tagService = tagService;
 	}
 
-	public TaskDto saveTask(@Nonnull TaskDto input) {
+	public TaskDto saveTask(TaskDto input) {
 		return saveTask(input, null);
 	}
 
-	public TaskDto saveTask(@Nonnull TaskDto input, User user) {
+	public TaskDto saveTask(TaskDto input, User user) {
 
 		if (input.id() != null) {
 			Optional<Task> optTask = repository.findById(input.id());
@@ -74,7 +73,7 @@ public class TaskService extends ServiceUtil {
 		return Mapper.toTaskDto(task);
 	}
 	
-	public TaskListResponse getAll(@Nonnull TaskListFilter filter) {
+	public TaskListResponse getAll(TaskListFilter filter) {
         Iterable<Task> result;
         long count;
         if (Filter.TODAY.equals(filter.filter())) {
@@ -120,7 +119,7 @@ public class TaskService extends ServiceUtil {
 		return new TaskListResponse(count, lst);
 	}
 	
-	public TaskDto getById(@Nonnull UUID id) {
+	public TaskDto getById(UUID id) {
 		Optional<Task> optTask = repository.findById(id);
 		if (optTask.isEmpty()) {
 			throw new TaskNotFoundException();
@@ -129,7 +128,7 @@ public class TaskService extends ServiceUtil {
 		return Mapper.toTaskDto(optTask.get());
 	}
 	
-	public void deleteById(@Nonnull UUID id) {
+	public void deleteById(UUID id) {
 		Optional<Task> optTask = repository.findById(id);
 		if (optTask.isEmpty()) {
 			throw new TaskNotFoundException();

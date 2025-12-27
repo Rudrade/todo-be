@@ -6,23 +6,23 @@ import me.rudrade.todo.model.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.jdbc.Sql;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
-@DataJpaTest
-@Sql("/sql-scripts/INIT_USERS.sql")
+@DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 class TagRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private TagRepository repository;
-    @Autowired private UserRepository userRepository;
 
     @Test
     void itShouldFindByUserId() {
-        User user = userRepository.findByUsername("valid-user").orElseThrow();
+        User user = getTestUser();
 
         Tag tag = new Tag();
         tag.setName("test-tag");
