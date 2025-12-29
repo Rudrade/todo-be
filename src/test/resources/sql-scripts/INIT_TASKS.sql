@@ -5,6 +5,11 @@ ON DUPLICATE KEY UPDATE id=id;
 INSERT INTO user (id, username, password, role) VALUES (UUID_TO_BIN(UUID()), 'second-user', '', 'ROLE_USER')
 ON DUPLICATE KEY UPDATE id=id;
 
+-- Cleanup
+DELETE FROM user_list;
+DELETE FROM tag;
+DELETE FROM task;
+
 -- Due Today
 INSERT INTO task (id, title, description, due_date, user_id) 
 SELECT UUID_TO_BIN(UUID()), 'title today', 'description today', CURRENT_DATE, id
@@ -44,6 +49,11 @@ FROM user
 WHERE username = 'valid-user';
 
 INSERT INTO user_list(id, name, color, user_id)
+SELECT UUID_TO_BIN(UUID()), 'test-list-2', 'white', id
+FROM user
+WHERE username = 'valid-user';
+
+INSERT INTO user_list(id, name, color, user_id)
 SELECT UUID_TO_BIN(UUID()), 'second-list', 'white', id
 FROM user
 WHERE username = 'second-user';
@@ -62,9 +72,9 @@ WHERE u.username = 'second-user';
 
 -- Tag
 INSERT INTO tag (id, name, color, user_id)
-SELECT UUID_TO_BIN(UUID()), 'test-tag', 'white', id
+SELECT UUID_TO_BIN(UUID()), 'test-tag user', 'white', id
 FROM user
 WHERE username = 'valid-user';
 
 INSERT INTO tag_task (tag_id, task_id)
-VALUES ((SELECT id FROM tag WHERE name = 'test-tag'), (SELECT id FROM task WHERE title = 'title today'))
+VALUES ((SELECT id FROM tag WHERE name = 'test-tag user' LIMIT 1), (SELECT id FROM task WHERE title = 'title today' LIMIT 1))

@@ -261,29 +261,14 @@ class TaskServiceTest {
         User user = user();
         TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.LIST, "Work", user);
         Task task = task(UUID.randomUUID(), "t1", "d1", LocalDate.now(), null, null);
-        UserList list = new UserList(UUID.randomUUID(), "Work", "red", user, List.of(task));
 
-        when(userListService.findByName("Work", user)).thenReturn(Optional.of(list));
+        when(taskRepository.findAllByUserListNameAndUserId("Work", user.getId(), Pageable.unpaged())).thenReturn(new PageImpl<>(List.of(task)));
 
         TaskListResponse response = taskService().getAll(filter);
 
         assertThat(response.tasks()).containsExactly(Mapper.toTaskDto(task));
-        verify(userListService).findByName("Work", user);
-        verifyNoInteractions(taskRepository);
-    }
-
-    @Test
-    void itShouldReturnEmptyWhenListNotFound() {
-        User user = user();
-        TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.LIST, "Work", user);
-
-        when(userListService.findByName("Work", user)).thenReturn(Optional.empty());
-
-        TaskListResponse response = taskService().getAll(filter);
-
-        assertThat(response.tasks()).isEmpty();
-        verify(userListService).findByName("Work", user);
-        verifyNoInteractions(taskRepository);
+        verify(taskRepository, times(1)).findAllByUserListNameAndUserId("Work", user.getId(), Pageable.unpaged());
+        verifyNoMoreInteractions(taskRepository);
     }
 
     @Test
@@ -294,27 +279,13 @@ class TaskServiceTest {
         Tag tag = new Tag(UUID.randomUUID(), "tag-1", "color", user, List.of(task));
         task.setTags(List.of(tag));
 
-        when(tagService.findByName("tag-1", user)).thenReturn(Optional.of(tag));
+        when(taskRepository.findAllByTagsNameAndUserId("tag-1", user.getId(), Pageable.unpaged())).thenReturn(new PageImpl<>(List.of(task)));
 
         TaskListResponse response = taskService().getAll(filter);
 
         assertThat(response.tasks()).containsExactly(Mapper.toTaskDto(task));
-        verify(tagService).findByName("tag-1", user);
-        verifyNoInteractions(taskRepository);
-    }
-
-    @Test
-    void itShouldReturnEmptyWhenTagNotFound() {
-        User user = user();
-        TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.TAG, "tag-1", user);
-
-        when(tagService.findByName("tag-1", user)).thenReturn(Optional.empty());
-
-        TaskListResponse response = taskService().getAll(filter);
-
-        assertThat(response.tasks()).isEmpty();
-        verify(tagService).findByName("tag-1", user);
-        verifyNoInteractions(taskRepository);
+        verify(taskRepository, times(1)).findAllByTagsNameAndUserId("tag-1", user.getId(), Pageable.unpaged());
+        verifyNoMoreInteractions(taskRepository);
     }
 
     @Test

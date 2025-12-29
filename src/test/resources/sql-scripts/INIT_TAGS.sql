@@ -6,6 +6,8 @@ INSERT INTO user (id, username, password, role) VALUES (UUID_TO_BIN(UUID()), 'se
 ON DUPLICATE KEY UPDATE id=id;
 
 -- Tag
+DELETE FROM tag;
+
 INSERT INTO tag (id, name, color, user_id)
 SELECT UUID_TO_BIN(UUID()), 'tag-1', 'white', id
 FROM user

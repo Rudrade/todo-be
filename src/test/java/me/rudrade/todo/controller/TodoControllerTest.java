@@ -8,14 +8,13 @@ import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.dto.response.UserListResponse;
 import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.User;
-import me.rudrade.todo.model.UserList;
-import me.rudrade.todo.repository.UserListRepository;
 import me.rudrade.todo.service.TaskService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.Sql.ExecutionPhase;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import java.time.LocalDate;
@@ -24,7 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@Sql({"/sql-scripts/INIT_TASKS.sql"})
+@Sql(scripts = {"/sql-scripts/INIT_TASKS.sql"}, executionPhase = ExecutionPhase.BEFORE_TEST_CLASS)
 class TodoControllerTest extends ControllerIntegration {
 
     private static final String URI_GET_ALL = "/todo/api/task";
@@ -34,7 +33,6 @@ class TodoControllerTest extends ControllerIntegration {
     private static final String URI_GET_LISTS= "/todo/api/task/lists";
 
     @Autowired private TaskService taskService;
-    @Autowired private UserListRepository listRepository;
 
     @Autowired private MockMvcTester mvc;
 
@@ -192,20 +190,6 @@ class TodoControllerTest extends ControllerIntegration {
 
     @Test
     void itShouldReturnUserLists() {
-        User user = getTestUser();
-
-        UserList list1 = new UserList();
-        list1.setName("List One");
-        list1.setUser(user);
-        list1.setColor("random-color");
-        listRepository.save(list1);
-
-        UserList list2 = new UserList();
-        list2.setName("Second AGB");
-        list2.setUser(user);
-        list2.setColor("random-color");
-        listRepository.save(list2);
-
         assertThat(mvc.get().uri(URI_GET_LISTS).headers(getAuthHeader()))
             .hasStatusOk()
             .bodyJson()
@@ -213,7 +197,7 @@ class TodoControllerTest extends ControllerIntegration {
             .satisfies(response -> {
                 assertThat(response.lists())
                     .map(UserListDto::name)
-                    .containsExactlyInAnyOrder("List One", "Second AGB");
+                    .containsExactlyInAnyOrder("test-list-2", "test-list");
             });
     }
 

@@ -6,6 +6,8 @@ INSERT INTO user (id, username, password, role) VALUES (UUID_TO_BIN(UUID()), 'se
 ON DUPLICATE KEY UPDATE id=id;
 
 -- User Lists
+DELETE FROM user_list;
+
 INSERT INTO user_list (id, name, color, user_id)
 SELECT UUID_TO_BIN(UUID()), 'list-1', 'red', id
 FROM user
