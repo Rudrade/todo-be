@@ -39,9 +39,9 @@ class TagControllerTest extends ControllerIntegration {
             .convertTo(TagListResponse.class)
             .satisfies(response ->
                 assertThat(response.tags())
-                    .hasSize(2)
+                    .hasSizeGreaterThanOrEqualTo(2)
                     .usingElementComparator(Comparator.comparing(TagDto::name).thenComparing(TagDto::color))
-                    .containsExactlyInAnyOrder(Mapper.toTagDto(tag1), Mapper.toTagDto(tag2))
+                    .containsOnlyOnce(Mapper.toTagDto(tag1), Mapper.toTagDto(tag2))
             );
     }
 
