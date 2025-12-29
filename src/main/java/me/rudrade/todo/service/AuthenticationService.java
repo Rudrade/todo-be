@@ -25,8 +25,11 @@ public class AuthenticationService {
 
 		this.passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 	}
+
 	public LoginResponse authenticate(UserDto user) {
-		if (user == null || user.username() == null || user.password() == null || user.password().isEmpty())
+		if (user == null ||
+			user.username() == null || user.username().isBlank() ||
+			user.password() == null || user.password().isBlank())
 			throw new InvalidAccessException();
 
 	 	Optional<User>  optUser =  userRepository.findByUsername(user.username());
@@ -39,12 +42,18 @@ public class AuthenticationService {
 		return new LoginResponse(jwtService.generateToken(optUser.get()));
 	}
 
-	public Optional<User> getUserByAuth(String authToken) {
-		String username = jwtService.extractUsername(authToken);
+	public User getUserByAuth(String authToken) {
+		if (authToken == null || authToken.isBlank())
+			throw new InvalidAccessException();
 
-		return userRepository.findByUsername(username);
+		String username = jwtService.extractUsername(authToken);
+		if (username == null || username.isBlank())
+			throw new InvalidAccessException();
+
+		return userRepository.findByUsername(username).orElseThrow(InvalidAccessException::new);
 	}
 
+	// TODO: Impl this right when feature is fully implemented
 	public void createUser(UserDto userDto) {
 		User user = new User();
 		user.setUsername(userDto.username());

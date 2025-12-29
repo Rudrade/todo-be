@@ -10,7 +10,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -27,11 +26,9 @@ public class TagController {
 
     @GetMapping()
     public TagListResponse getAll(@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken) {
-        Optional<User> user = authenticationService.getUserByAuth(authToken);
-        if (user.isEmpty())
-            return new TagListResponse(List.of());
+        User user = authenticationService.getUserByAuth(authToken);
 
-        List<TagDto> lstDto = tagService.findByUser(user.get()).stream()
+        List<TagDto> lstDto = tagService.findByUser(user).stream()
             .map(Mapper::toTagDto)
             .toList();
 
@@ -39,7 +36,7 @@ public class TagController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteTag(@PathVariable UUID id) {
-        tagService.deleteById(id);
+    public void deleteTag(@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken, @PathVariable UUID id) {
+        tagService.deleteById(id, authenticationService.getUserByAuth(authToken));
     }
 }

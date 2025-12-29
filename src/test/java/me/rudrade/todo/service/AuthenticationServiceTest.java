@@ -6,6 +6,8 @@ import me.rudrade.todo.exception.InvalidAccessException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -15,9 +17,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,45 +56,24 @@ class AuthenticationServiceTest {
         verifyNoMoreInteractions(userRepository, jwtService);
     }
 
-    @Test
-    void itShouldThrowWhenUserDtoIsNull() {
-        assertThatThrownBy(() -> getAuthenticationService().authenticate(null))
-            .isInstanceOf(InvalidAccessException.class);
+    @ParameterizedTest
+    @MethodSource("invalidAuthenticationInputs")
+    void itShouldThrowWhenAuthenticatingWithInvalidInput(UserDto invalidInput) {
+        AuthenticationService service = getAuthenticationService();
 
-        verifyNoInteractions(userRepository, jwtService);
-    }
-
-    @Test
-    void itShouldThrowWhenUsernameIsNull() {
-        assertThatThrownBy(() -> getAuthenticationService().authenticate(new UserDto(null, "password")))
-            .isInstanceOf(InvalidAccessException.class);
-
-        verifyNoInteractions(userRepository, jwtService);
-    }
-
-    @Test
-    void itShouldThrowWhenPasswordIsNull() {
-        assertThatThrownBy(() -> getAuthenticationService().authenticate(new UserDto("rui", null)))
-            .isInstanceOf(InvalidAccessException.class);
-
-        verifyNoInteractions(userRepository, jwtService);
-    }
-
-    @Test
-    void itShouldThrowWhenPasswordIsEmpty() {
-        assertThatThrownBy(() -> getAuthenticationService().authenticate(new UserDto("rui", "")))
-            .isInstanceOf(InvalidAccessException.class);
+        assertThrows(InvalidAccessException.class, () -> service.authenticate(invalidInput));
 
         verifyNoInteractions(userRepository, jwtService);
     }
 
     @Test
     void itShouldThrowWhenUserIsNotFound() {
+        AuthenticationService service = getAuthenticationService();
         when(userRepository.findByUsername("rui"))
             .thenReturn(Optional.empty());
+        UserDto userDto = new UserDto("rui", "password");
 
-        assertThatThrownBy(() -> getAuthenticationService().authenticate(new UserDto("rui", "password")))
-            .isInstanceOf(InvalidAccessException.class);
+        assertThrows(InvalidAccessException.class, () -> service.authenticate(userDto));
 
         verify(userRepository, times(1)).findByUsername("rui");
         verifyNoInteractions(jwtService);
@@ -100,6 +82,7 @@ class AuthenticationServiceTest {
     @Test
     void itShouldThrowWhenPasswordDoesNotMatch() {
         PasswordEncoder passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        AuthenticationService service = getAuthenticationService();
 
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -108,9 +91,9 @@ class AuthenticationServiceTest {
 
         when(userRepository.findByUsername("rui"))
             .thenReturn(Optional.of(user));
+        UserDto userDto = new UserDto("rui", "password");
 
-        assertThatThrownBy(() -> getAuthenticationService().authenticate(new UserDto("rui", "password")))
-            .isInstanceOf(InvalidAccessException.class);
+        assertThrows(InvalidAccessException.class, () -> service.authenticate(userDto));
 
         verify(userRepository, times(1)).findByUsername("rui");
         verifyNoInteractions(jwtService);
@@ -127,10 +110,9 @@ class AuthenticationServiceTest {
         when(userRepository.findByUsername("rui"))
             .thenReturn(Optional.of(user));
 
-        Optional<User> result = getAuthenticationService().getUserByAuth("auth-token");
+        User result = getAuthenticationService().getUserByAuth("auth-token");
 
-        assertThat(result)
-            .hasValue(user);
+        assertThat(result).isEqualTo(user);
 
         verify(jwtService, times(1)).extractUsername("auth-token");
         verify(userRepository, times(1)).findByUsername("rui");
@@ -157,6 +139,72 @@ class AuthenticationServiceTest {
             .isNotEqualTo("password");
         assertThat(passwordEncoder.matches("password", savedUser.getPassword()))
             .isTrue();
+    }
+
+    @Test
+    void itShouldThrowWhenAuthTokenIsNull() {
+        AuthenticationService service = getAuthenticationService();
+
+        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth(null));
+
+        verifyNoInteractions(jwtService, userRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenAuthTokenIsBlank() {
+        AuthenticationService service = getAuthenticationService();
+
+        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("   "));
+
+        verifyNoInteractions(jwtService, userRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenExtractedUsernameIsNull() {
+        AuthenticationService service = getAuthenticationService();
+        when(jwtService.extractUsername("auth-token")).thenReturn(null);
+
+        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("auth-token"));
+
+        verify(jwtService, times(1)).extractUsername("auth-token");
+        verifyNoMoreInteractions(jwtService);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenExtractedUsernameIsBlank() {
+        AuthenticationService service = getAuthenticationService();
+        when(jwtService.extractUsername("auth-token")).thenReturn("   ");
+
+        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("auth-token"));
+
+        verify(jwtService, times(1)).extractUsername("auth-token");
+        verifyNoMoreInteractions(jwtService);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenUserNotFoundByExtractedUsername() {
+        AuthenticationService service = getAuthenticationService();
+        when(jwtService.extractUsername("auth-token")).thenReturn("rui");
+        when(userRepository.findByUsername("rui")).thenReturn(Optional.empty());
+
+        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("auth-token"));
+
+        verify(jwtService, times(1)).extractUsername("auth-token");
+        verify(userRepository, times(1)).findByUsername("rui");
+        verifyNoMoreInteractions(jwtService, userRepository);
+    }
+
+    private static Stream<UserDto> invalidAuthenticationInputs() {
+        return Stream.of(
+            null,
+            new UserDto(null, "password"),
+            new UserDto("   ", "password"),
+            new UserDto("rui", null),
+            new UserDto("rui", ""),
+            new UserDto("rui", "   ")
+        );
     }
 
     private AuthenticationService getAuthenticationService() {

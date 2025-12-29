@@ -2,8 +2,7 @@ package me.rudrade.todo.config;
 
 import java.io.IOException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,8 +22,6 @@ import me.rudrade.todo.service.JwtService;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
-
 	private final JwtService jwtService;
 	private final UserDetailsService userDetailsService;
 
@@ -37,42 +34,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
-		final String authHeader = request.getHeader("Authorization");
+		final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 		
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 			filterChain.doFilter(request, response);
 			return;
 		}
 		
-		try {
-			final String jwt = authHeader.substring(7);
-			final String username = jwtService.extractUsername(jwt);
+		final String jwt = authHeader.substring(7);
+		final String username = jwtService.extractUsername(jwt);
+		
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (username != null && authentication == null) {
+			UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 			
-			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-			if (username != null && authentication == null) {
-				UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+			if (jwtService.isTokenValid(jwt, username)) {
+				UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+						userDetails,
+						null,
+						userDetails.getAuthorities());
 				
-				if (jwtService.isTokenValid(jwt, username)) {
-					UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-							userDetails,
-							null,
-							userDetails.getAuthorities());
-					
-					authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-					SecurityContextHolder.getContext().setAuthentication(authToken);
-					
-					filterChain.doFilter(request, response);
-					return;
-				}
+				authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				SecurityContextHolder.getContext().setAuthentication(authToken);
+				
+				filterChain.doFilter(request, response);
+				return;
 			}
-			
-			throw new InvalidAccessException();
-			
-		} catch (Exception e) {
-            LOGGER.error("", e);
-			throw new InvalidAccessException();
 		}
 		
+		throw new InvalidAccessException();
 	}
 	
 }

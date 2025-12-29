@@ -1,6 +1,8 @@
 package me.rudrade.todo.dto.filter;
 
-public record TaskListFilter(Filter filter, String searchTerm) {
+import me.rudrade.todo.model.User;
+
+public record TaskListFilter(Filter filter, String searchTerm, User user) {
 
     public enum Filter {
         UPCOMING,

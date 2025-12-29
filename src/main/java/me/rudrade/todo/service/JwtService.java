@@ -2,6 +2,7 @@ package me.rudrade.todo.service;
 
 import java.util.Date;
 
+import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,9 @@ public class JwtService {
 	private String issuer;
 	
 	public String generateToken(User user) {
+		if (user == null)
+			throw new InvalidDataException("User must exist to generate a token.");
+
 		return JWT.create()
 				.withIssuer(issuer)
 				.withClaim(CLAIM_USERNAME, user.getUsername())
@@ -40,14 +44,22 @@ public class JwtService {
 	}
 	
 	public String extractUsername(String token) {
-		if (token.startsWith("Bearer ")) {
-			token = token.substring(7);
+		if (token != null) {
+			if (token.startsWith("Bearer ")) {
+				token = token.substring(7);
+			}
+			return JWT.decode(token).getClaim(CLAIM_USERNAME).asString();
 		}
 
-		return JWT.decode(token).getClaim(CLAIM_USERNAME).asString();
+		return null;
 	}
 	
 	public boolean isTokenValid(String token, String username) {
+		if (token == null || token.isBlank() ||
+			username == null || username.isBlank()) {
+			return false;
+		}
+
 		DecodedJWT decodedJwt = JWT.require(getAlgorithm())
 				.withIssuer(issuer)
 				.build()

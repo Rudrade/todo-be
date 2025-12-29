@@ -47,7 +47,9 @@ class TagControllerTest extends ControllerIntegration {
 
     @Test
     void itShouldDeleteTag() {
-        Tag tag1 = new Tag(null, "tag-test-1", "black", null, null);
+        var user = getTestUser();
+
+        Tag tag1 = new Tag(null, "tag-test-1", "black", user, null);
         tagRepository.save(tag1);
 
         assertThat(mvc.delete().uri(BASE_URI + "/{id}", tag1.getId())

@@ -1,6 +1,6 @@
 package me.rudrade.todo.exception;
 
-public class TaskNotFoundException extends RuntimeException {
+public class TaskNotFoundException extends InvalidDataException {
 
 	private static final long serialVersionUID = 5337346326867790410L;
 	

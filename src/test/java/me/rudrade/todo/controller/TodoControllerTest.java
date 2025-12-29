@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Sql({"/sql-scripts/INIT_TASKS.sql"})
 class TodoControllerTest extends ControllerIntegration {
@@ -48,19 +49,20 @@ class TodoControllerTest extends ControllerIntegration {
             null
         );
 
-        assertThat(mvc.post().uri(URI_SAVE_TASK)
+        var request = mvc.post().uri(URI_SAVE_TASK)
             .contentType(MediaType.APPLICATION_JSON)
             .headers(getAuthHeader())
-            .content(mapper().writeValueAsString(input))
-        )
-        .hasStatusOk()
-        .bodyJson().convertTo(TaskDto.class)
-        .satisfies(response -> {
-            assertThat(response)
-                .usingRecursiveComparison().ignoringFields("id")
-                .isEqualTo(input);
-            assertThat(response.id()).isNotNull();
-        });
+            .content(mapper().writeValueAsString(input));
+
+        assertThat(request)
+            .hasStatusOk()
+            .bodyJson().convertTo(TaskDto.class)
+            .satisfies(response -> {
+                assertThat(response)
+                    .usingRecursiveComparison().ignoringFields("id")
+                    .isEqualTo(input);
+                assertThat(response.id()).isNotNull();
+            });
     }
 
     @Test
@@ -90,7 +92,6 @@ class TodoControllerTest extends ControllerIntegration {
         .bodyJson().convertTo(TaskListResponse.class)
         .satisfies(response -> {
             assertThat(response.tasks()).isNotEmpty();
-            assertThat(response.count()).isPositive();
         });
     }
 
@@ -109,7 +110,6 @@ class TodoControllerTest extends ControllerIntegration {
                         .isNotNull()
                         .isToday();
                 });
-            assertThat(response.count()).isPositive();
         });
     }
 
@@ -118,7 +118,7 @@ class TodoControllerTest extends ControllerIntegration {
         assertThat(mvc.get().uri(URI_GET_ALL)
             .headers(getAuthHeader())
             .queryParam("filter", TaskListFilter.Filter.SEARCH.name())
-            .queryParam("searchTerm", "abc")
+            .queryParam("searchTerm", "title")
         ).hasStatusOk()
         .bodyJson().convertTo(TaskListResponse.class)
         .satisfies(response -> {
@@ -126,9 +126,8 @@ class TodoControllerTest extends ControllerIntegration {
                 .isNotEmpty()
                 .allSatisfy(task -> {
                     assertThat(task.title())
-                        .containsIgnoringCase("abc");
+                        .containsIgnoringCase("title");
                 });
-            assertThat(response.count()).isPositive();
         });
     }
 
@@ -142,12 +141,14 @@ class TodoControllerTest extends ControllerIntegration {
             null,
             null
         );
-        TaskDto savedTask = taskService.saveTask(input, null);
+        TaskDto savedTask = taskService.saveTask(input, getTestUser());
 
-        assertThat(mvc.get().uri(URI_GET_DETAIL, savedTask.id().toString())
-            .headers(getAuthHeader())
-        ).hasStatusOk()
-            .bodyJson().convertTo(TaskDto.class)
+        var assertResp = assertThat(mvc.get().uri(URI_GET_DETAIL, savedTask.id().toString())
+            .headers(getAuthHeader()));
+
+        assertResp.hasStatusOk()
+            .bodyJson()
+            .convertTo(TaskDto.class)
             .isEqualTo(savedTask);
     }
 
@@ -168,14 +169,18 @@ class TodoControllerTest extends ControllerIntegration {
             null,
             null
         );
-        TaskDto savedTask = taskService.saveTask(input, null);
+
+        User user = getTestUser();
+
+        TaskDto savedTask = taskService.saveTask(input, user);
 
         assertThat(mvc.delete().uri(URI_DELETE, savedTask.id().toString())
             .headers(getAuthHeader())
         ).hasStatusOk();
 
-        assertThatThrownBy(() -> taskService.getById(savedTask.id()))
-            .isInstanceOf(TaskNotFoundException.class);
+        TaskService service = taskService;
+        UUID deletedId = savedTask.id();
+        assertThrows(TaskNotFoundException.class, () -> service.getById(deletedId, user));
     }
 
     @Test

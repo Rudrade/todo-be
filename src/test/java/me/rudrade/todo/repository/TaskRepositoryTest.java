@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.*;
 
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.model.Task;
+import me.rudrade.todo.model.User;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -30,7 +32,9 @@ class TaskRepositoryTest extends SqlIntegrationTest  {
 
     @Test
     void itShouldFindDueToday() {
-        List<Task> result = repository.findDueToday();
+        User user = getTestUser();
+
+        List<Task> result = repository.findDueToday(user.getId());
 
         LocalDate dtNow = LocalDate.now();
         assertThat(result)
@@ -39,6 +43,7 @@ class TaskRepositoryTest extends SqlIntegrationTest  {
             .containsExactlyInAnyOrderElementsOf(
               getAllTasks().stream()
                   .filter(t ->
+                      sameUser(t.getUser(), user) &&
                       t.getDueDate() != null &&
                       t.getDueDate().getYear() == dtNow.getYear() &&
                       t.getDueDate().getMonthValue() == dtNow.getMonthValue() &&
@@ -49,27 +54,10 @@ class TaskRepositoryTest extends SqlIntegrationTest  {
     }
 
     @Test
-    void itShouldCountDueToday() {
-        long result = repository.countFindDueToday();
-
-        LocalDate dtNow = LocalDate.now();
-        assertThat(result)
-            .isPositive()
-            .isEqualTo(
-                getAllTasks().stream()
-                    .filter(t ->
-                        t.getDueDate() != null &&
-                        t.getDueDate().getYear() == dtNow.getYear() &&
-                        t.getDueDate().getMonthValue() == dtNow.getMonthValue() &&
-                        t.getDueDate().getDayOfMonth() == dtNow.getDayOfMonth()
-                    )
-                    .count()
-            );
-    }
-
-    @Test
     void itShouldFindDueUpcoming() {
-        List<Task> result = repository.findDueUpcoming();
+        User user = getTestUser();
+
+        List<Task> result = repository.findDueUpcoming(user.getId());
 
         LocalDate dtNow = LocalDate.now();
         assertThat(result)
@@ -77,47 +65,81 @@ class TaskRepositoryTest extends SqlIntegrationTest  {
             .usingDefaultElementComparator()
             .containsExactlyInAnyOrderElementsOf(
                 getAllTasks().stream()
-                    .filter(t -> t.getDueDate() != null && t.getDueDate().isAfter(dtNow))
-                    .toList()
-            );
-    }
-
-    @Test
-    void itShouldCountDueUpcoming() {
-        long result = repository.countFindDueUpcoming();
-
-        LocalDate dtNow = LocalDate.now();
-        assertThat(result)
-            .isPositive()
-            .isEqualTo(getAllTasks().stream()
-                .filter(t -> t.getDueDate() != null && t.getDueDate().isAfter(dtNow))
-                .count()
+                    .filter(t ->
+                        sameUser(t.getUser(), user) &&
+                        t.getDueDate() != null &&
+                        t.getDueDate().isAfter(dtNow)
+                    ).toList()
             );
     }
 
     @Test
     void itShouldFindByTitleContains() {
-        List<Task> result = repository.findByTitleContains("abc");
+        User user = getTestUser();
+
+        List<Task> result = repository.findByTitleContains("toDaY", user.getId());
 
         assertThat(result)
             .isNotEmpty()
             .containsExactlyInAnyOrderElementsOf(
                 getAllTasks().stream()
-                    .filter(t -> t.getTitle() != null && t.getTitle().toLowerCase().contains("abc"))
-                    .toList()
+                    .filter(t -> 
+                        sameUser(t.getUser(), user) &&
+                        t.getTitle() != null &&
+                        t.getTitle().toLowerCase().contains("today")
+                    ).toList()
             );
     }
 
     @Test
-    void itShouldCountByTitleContains() {
-        long result = repository.countByTitleContains("AbC");
+    void itShouldFindByIdAndUserId() {
+        User user = getTestUser();
+        Task expected = getAllTasks().stream()
+            .filter(t -> sameUser(t.getUser(), user))
+            .findFirst()
+            .orElseThrow();
+
+        var result = repository.findByIdAndUserId(expected.getId(), user.getId());
 
         assertThat(result)
-            .isPositive()
-            .isEqualTo(
+            .isPresent()
+            .get()
+            .satisfies(task -> {
+                assertThat(task.getId()).isEqualTo(expected.getId());
+                assertThat(task.getTitle()).isEqualTo(expected.getTitle());
+                assertThat(task.getDescription()).isEqualTo(expected.getDescription());
+                assertThat(task.getDueDate()).isEqualTo(expected.getDueDate());
+                assertThat(sameUser(task.getUser(), user)).isTrue();
+            });
+    }
+
+    @Test
+    void itShouldNotFindByIdWhenUserDoesNotOwnTask() {
+        User user = getTestUser();
+        Task otherUserTask = getAllTasks().stream()
+            .filter(t -> !sameUser(t.getUser(), user))
+            .findFirst()
+            .orElseThrow();
+
+        var result = repository.findByIdAndUserId(otherUserTask.getId(), user.getId());
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void itShouldFindAllByUserId() {
+        User user = getTestUser();
+
+        List<Task> result = repository.findAllByUserId(user.getId());
+
+        assertThat(result)
+            .isNotEmpty()
+            .usingDefaultElementComparator()
+            .containsExactlyInAnyOrderElementsOf(
                 getAllTasks().stream()
-                    .filter(t -> t.getTitle() != null && t.getTitle().toLowerCase().contains("abc"))
-                    .count()
+                    .filter(t -> sameUser(t.getUser(), user))
+                    .toList()
             );
     }
+
 }

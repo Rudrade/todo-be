@@ -1,8 +1,12 @@
 package me.rudrade.todo.service;
 
+import me.rudrade.todo.exception.InvalidAccessException;
+import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.Tag;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.TagRepository;
+import me.rudrade.todo.util.ServiceUtil;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,30 +22,46 @@ public class TagService extends ServiceUtil {
         this.tagRepository = tagRepository;
     }
 
-    public Tag save(Tag tag) {
-        return tagRepository.save(tag);
-    }
-
     public List<Tag> findByUser(User user) {
+        if (user == null || user.getId() == null)
+            throw new InvalidAccessException();
+
         return tagRepository.findByUserId(user.getId());
     }
 
     public Tag findOrCreateByUser(User user, Tag tag) {
-        Optional<Tag> optionalTag = tagRepository.findByNameAndUserId(tag.getName(), user.getId());
+        if (user == null) {
+            throw new InvalidAccessException();
+        }
+
+        if (tag == null)
+            throw new InvalidDataException("Tag must exist.");
+
+        Optional<Tag> optionalTag = findByName(tag.getName(), user);
         return optionalTag.orElseGet(() -> {
-            if (tag.getColor() == null || tag.getColor().isEmpty()) {
+            if (tag.getColor() == null || tag.getColor().isBlank()) {
                 tag.setColor(generateRandomHexColor());
                 tag.setUser(user);
             }
-          return save(tag);
+          return tagRepository.save(tag);
         });
     }
 
-    public void deleteById(UUID id) {
+    public void deleteById(UUID id, User user) {
+        if (id == null || user == null || user.getId() == null)
+            throw new InvalidAccessException();
+
+        Optional<Tag> optionalTag = tagRepository.findByIdAndUserId(id, user.getId());
+        if (optionalTag.isEmpty())
+            throw new InvalidAccessException();
+
         tagRepository.deleteById(id);
     }
 
-    public Optional<Tag> findByName(String name) {
-        return tagRepository.findByName(name);
+    public Optional<Tag> findByName(String name, User user) {
+        if (name == null || name.isBlank() || user == null || user.getId() == null)
+            throw new InvalidAccessException();
+
+        return tagRepository.findByNameAndUserId(name, user.getId());
     }
 }

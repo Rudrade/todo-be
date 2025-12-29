@@ -15,12 +15,12 @@ public class ExceptionHandler {
 	public ResponseEntity<Error> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
 		return new ResponseEntity<>(new Error("Invalid data sent"), HttpStatus.BAD_REQUEST);
 	}
-	
-	@org.springframework.web.bind.annotation.ExceptionHandler(TaskNotFoundException.class)
-	public ResponseEntity<Error> handleTaskNotFoundException(TaskNotFoundException ex) {
+
+	@org.springframework.web.bind.annotation.ExceptionHandler(InvalidDataException.class)
+	public ResponseEntity<Error> handleDataIntegrityViolationException(InvalidDataException ex) {
 		return new ResponseEntity<>(new Error(ex.getMessage()), HttpStatus.BAD_REQUEST);
 	}
-
+	
 	@org.springframework.web.bind.annotation.ExceptionHandler(InvalidAccessException.class)
 	public ResponseEntity<Error> handleInvalidAccessException(InvalidAccessException ex) {
 		return new ResponseEntity<>(new Error("Access Invalid"), HttpStatus.FORBIDDEN);

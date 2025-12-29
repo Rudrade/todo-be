@@ -15,5 +15,5 @@ public interface TagRepository extends CrudRepository<Tag, UUID> {
 
     Optional<Tag> findByNameAndUserId(String name, UUID userId);
 
-    Optional<Tag> findByName(String name);
+    Optional<Tag> findByIdAndUserId(UUID id, UUID userId);
 }

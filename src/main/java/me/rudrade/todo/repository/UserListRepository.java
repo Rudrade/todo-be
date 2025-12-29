@@ -10,5 +10,6 @@ import java.util.UUID;
 @Repository
 public interface UserListRepository extends CrudRepository<UserList, UUID> {
 
-    Optional<UserList> findByName(String name);
+    Optional<UserList> findByNameAndUserId(String name, UUID userId);
+
 }

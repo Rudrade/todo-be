@@ -26,8 +26,9 @@ public class Mapper {
 				dto.title(),
 				dto.description(),
 				dto.dueDate(),
+				null,
 				dto.listName() == null ? null : new UserList(null, dto.listName(), null, null, null),
-			dto.tags() != null && !dto.tags().isEmpty() ? dto.tags().stream().map(Mapper::toTag).toList() : null
+				dto.tags() != null && !dto.tags().isEmpty() ? dto.tags().stream().map(Mapper::toTag).toList() : null
 				);
 	}
 
@@ -38,5 +39,8 @@ public class Mapper {
 	public static Tag toTag(TagDto dto) {
 		return new Tag(null, dto.name(), dto.color(), null, null);
 	}
-	
+
+	public static UserListDto toListDto(UserList lst) {
+		return new UserListDto(lst.getName(), lst.getColor(), lst.getTasks() == null ? 0 : lst.getTasks().size());
+	}
 }

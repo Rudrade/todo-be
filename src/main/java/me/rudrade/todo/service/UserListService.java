@@ -1,12 +1,16 @@
 package me.rudrade.todo.service;
 
+import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.UserListDto;
+import me.rudrade.todo.exception.InvalidAccessException;
+import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.UserListRepository;
+import me.rudrade.todo.util.ServiceUtil;
+
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,28 +25,29 @@ public class UserListService extends ServiceUtil {
         this.authenticationService = authenticationService;
     }
     public List<UserListDto> getUserListsByToken(String authToken) {
-        Optional<User> optUser = authenticationService.getUserByAuth(authToken);
-        if (optUser.isEmpty())
-            return List.of();
+        if (authToken == null || authToken.isBlank())
+            throw new InvalidAccessException();
 
-        List<UserListDto> result = new ArrayList<>();
-        optUser.get().getUserLists().forEach(lst ->
-            result.add(new UserListDto(lst.getName(), lst.getColor(), lst.getTasks() == null ? 0 : lst.getTasks().size()))
-        );
+        User user = authenticationService.getUserByAuth(authToken);
 
-        return result;
+        return user.getUserLists().stream().map(Mapper::toListDto).toList();
     }
 
     public UserList saveByName(String listName, User user) {
-        Optional<UserList> optList = userListRepository.findByName(listName);
-        String color = generateRandomHexColor();
+        if (user == null)
+            throw new InvalidAccessException();
 
-        return optList.orElseGet(() -> userListRepository.save(new UserList(null, listName, color, user, null)));
+        if (listName == null || listName.isBlank())
+            throw new InvalidDataException("List name must be filled.");
+
+        Optional<UserList> optList = findByName(listName, user);
+        return optList.orElseGet(() -> userListRepository.save(new UserList(null, listName, generateRandomHexColor(), user, null)));
     }
 
+    public Optional<UserList> findByName(String name, User user) {
+        if (name == null || name.isBlank() || user == null || user.getId() == null)
+            throw new InvalidAccessException();
 
-
-    public Optional<UserList> findByName(String name) {
-        return userListRepository.findByName(name);
+        return userListRepository.findByNameAndUserId(name, user.getId());
     }
 }

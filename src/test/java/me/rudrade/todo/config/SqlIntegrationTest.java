@@ -4,8 +4,10 @@ import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.service.AuthenticationService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
@@ -47,9 +49,16 @@ public abstract class SqlIntegrationTest {
         if (user.isEmpty()) {
             authenticationService.createUser(new UserDto(TEST_USERNAME, TEST_PASSWORD));
             user = userRepository.findByUsername(TEST_USERNAME);
+        } else if (user.get().getPassword().isBlank()) {
+            user.get().setPassword(PasswordEncoderFactories.createDelegatingPasswordEncoder().encode(TEST_PASSWORD));
+            userRepository.save(user.get());
         }
 
         return user.orElseThrow();
+    }
+
+    public boolean sameUser(User a, User b) {
+        return a != null && b != null && a.getId() != null && a.getId().equals(b.getId());
     }
 
 }
