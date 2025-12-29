@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -34,14 +35,12 @@ class TaskRepositoryTest extends SqlIntegrationTest  {
     void itShouldFindDueToday() {
         User user = getTestUser();
 
-        List<Task> result = repository.findDueToday(user.getId());
+        var result = repository.findDueToday(user.getId(), Pageable.unpaged());
 
         LocalDate dtNow = LocalDate.now();
-        assertThat(result)
-            .isNotEmpty()
-            .usingDefaultElementComparator()
-            .containsExactlyInAnyOrderElementsOf(
-              getAllTasks().stream()
+        assertThat(result).isNotEmpty();
+
+        var expected = getAllTasks().stream()
                   .filter(t ->
                       sameUser(t.getUser(), user) &&
                       t.getDueDate() != null &&
@@ -49,46 +48,57 @@ class TaskRepositoryTest extends SqlIntegrationTest  {
                       t.getDueDate().getMonthValue() == dtNow.getMonthValue() &&
                       t.getDueDate().getDayOfMonth() == dtNow.getDayOfMonth()
                   )
-                  .toList()
-            );
+                  .toList();
+
+        assertThat(result.getContent())
+            .usingDefaultElementComparator()
+            .containsExactlyInAnyOrderElementsOf(expected);
+
+        assertThat(result.getTotalElements()).isEqualTo(expected.size());
     }
 
     @Test
     void itShouldFindDueUpcoming() {
         User user = getTestUser();
 
-        List<Task> result = repository.findDueUpcoming(user.getId());
+        var result = repository.findDueUpcoming(user.getId(), Pageable.unpaged());
 
         LocalDate dtNow = LocalDate.now();
-        assertThat(result)
-            .isNotEmpty()
-            .usingDefaultElementComparator()
-            .containsExactlyInAnyOrderElementsOf(
-                getAllTasks().stream()
+        assertThat(result).isNotEmpty();
+            
+        var expected = getAllTasks().stream()
                     .filter(t ->
                         sameUser(t.getUser(), user) &&
                         t.getDueDate() != null &&
                         t.getDueDate().isAfter(dtNow)
-                    ).toList()
-            );
+                    ).toList();
+        
+        assertThat(result.getContent())
+            .usingDefaultElementComparator()
+            .containsExactlyInAnyOrderElementsOf(expected);
+
+        assertThat(result.getTotalElements()).isEqualTo(expected.size());
     }
 
     @Test
     void itShouldFindByTitleContains() {
         User user = getTestUser();
 
-        List<Task> result = repository.findByTitleContains("toDaY", user.getId());
+        var result = repository.findByTitleContains("toDaY", user.getId(), Pageable.unpaged());
 
-        assertThat(result)
-            .isNotEmpty()
-            .containsExactlyInAnyOrderElementsOf(
-                getAllTasks().stream()
+        assertThat(result).isNotEmpty();
+
+        var expected = getAllTasks().stream()
                     .filter(t -> 
                         sameUser(t.getUser(), user) &&
                         t.getTitle() != null &&
                         t.getTitle().toLowerCase().contains("today")
-                    ).toList()
-            );
+                    ).toList();
+
+        assertThat(result.getContent())
+            .containsExactlyInAnyOrderElementsOf(expected);
+
+        assertThat(result.getTotalElements()).isEqualTo(expected.size());
     }
 
     @Test
@@ -130,16 +140,63 @@ class TaskRepositoryTest extends SqlIntegrationTest  {
     void itShouldFindAllByUserId() {
         User user = getTestUser();
 
-        List<Task> result = repository.findAllByUserId(user.getId());
+        var result = repository.findAllByUserId(user.getId(), Pageable.unpaged());
 
         assertThat(result)
-            .isNotEmpty()
+            .isNotEmpty();
+
+        var expected = getAllTasks().stream()
+                .filter(t -> sameUser(t.getUser(), user))
+                .toList();
+
+        assertThat(result.getContent())
             .usingDefaultElementComparator()
-            .containsExactlyInAnyOrderElementsOf(
-                getAllTasks().stream()
-                    .filter(t -> sameUser(t.getUser(), user))
-                    .toList()
-            );
+            .containsExactlyInAnyOrderElementsOf(expected);
+
+        assertThat(result.getTotalElements()).isEqualTo(expected.size());
+    }
+
+    @Test
+    void itShouldFindAllByUserListNameAndUserId() {
+        User user = getTestUser();
+        
+        var targetList = "test-list";
+
+        var expected = getAllTasks().stream()
+                .filter(t -> t.getUserList() != null)
+                .filter(t -> t.getUserList().getName().equals(targetList))
+                .filter(t -> sameUser(t.getUser(), user))
+                .toList();
+
+        var result = repository.findAllByUserListNameAndUserId(targetList, user.getId(), Pageable.unpaged());
+
+        assertThat(result)
+            .isNotNull();
+        assertThat(result.getContent())
+            .usingDefaultElementComparator()
+            .containsExactlyInAnyOrderElementsOf(expected);
+        assertThat(result.getTotalElements()).isEqualTo(expected.size());
+    }
+
+    @Test
+    void itShouldFindAllByTagsNameAndUserId() {
+        var user = getTestUser();
+        var tag = "test-tag";
+
+        var expected = getAllTasks().stream()
+                .filter(t -> sameUser(t.getUser(), user))
+                .filter(t -> t.getTags() != null)
+                .filter(t -> t.getTags().stream().anyMatch(tg -> tag.equals(tg.getName())))
+                .toList();
+
+        var result = repository.findAllByTagsNameAndUserId(tag, user.getId(), Pageable.unpaged());
+
+        assertThat(result)
+            .isNotNull();
+        assertThat(result.getContent())
+            .usingDefaultElementComparator()
+            .containsExactlyInAnyOrderElementsOf(expected);
+        assertThat(result.getTotalElements()).isEqualTo(expected.size());
     }
 
 }

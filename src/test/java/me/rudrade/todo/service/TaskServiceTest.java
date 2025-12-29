@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -214,12 +216,12 @@ class TaskServiceTest {
         Task t1 = task(UUID.randomUUID(), "t1", "d1", LocalDate.now(), null, null);
         Task t2 = task(UUID.randomUUID(), "t2", "d2", LocalDate.now(), null, null);
 
-        when(taskRepository.findDueToday(user.getId())).thenReturn(List.of(t1, t2));
+        when(taskRepository.findDueToday(user.getId(), Pageable.unpaged())).thenReturn(new PageImpl<>(List.of(t1, t2)));
 
         TaskListResponse response = taskService().getAll(filter);
 
         assertThat(response.tasks()).containsExactlyInAnyOrder(Mapper.toTaskDto(t1), Mapper.toTaskDto(t2));
-        verify(taskRepository).findDueToday(user.getId());
+        verify(taskRepository).findDueToday(user.getId(), Pageable.unpaged());
         verifyNoMoreInteractions(taskRepository);
     }
 
@@ -230,12 +232,12 @@ class TaskServiceTest {
         Task t1 = task(UUID.randomUUID(), "t1", "d1", LocalDate.now().plusDays(1), null, null);
         Task t2 = task(UUID.randomUUID(), "t2", "d2", LocalDate.now().plusDays(2), null, null);
 
-        when(taskRepository.findDueUpcoming(user.getId())).thenReturn(List.of(t1, t2));
+        when(taskRepository.findDueUpcoming(user.getId(), Pageable.unpaged())).thenReturn(new PageImpl<>(List.of(t1, t2)));
 
         TaskListResponse response = taskService().getAll(filter);
 
         assertThat(response.tasks()).containsExactlyInAnyOrder(Mapper.toTaskDto(t1), Mapper.toTaskDto(t2));
-        verify(taskRepository).findDueUpcoming(user.getId());
+        verify(taskRepository).findDueUpcoming(user.getId(), Pageable.unpaged());
         verifyNoMoreInteractions(taskRepository);
     }
 
@@ -245,12 +247,12 @@ class TaskServiceTest {
         TaskListFilter filter = new TaskListFilter(TaskListFilter.Filter.SEARCH, "title", user);
         Task t1 = task(UUID.randomUUID(), "title 1", "d1", LocalDate.now(), null, null);
 
-        when(taskRepository.findByTitleContains("title", user.getId())).thenReturn(List.of(t1));
+        when(taskRepository.findByTitleContains("title", user.getId(), Pageable.unpaged())).thenReturn(new PageImpl<>(List.of(t1)));
 
         TaskListResponse response = taskService().getAll(filter);
 
         assertThat(response.tasks()).containsExactly(Mapper.toTaskDto(t1));
-        verify(taskRepository).findByTitleContains("title", user.getId());
+        verify(taskRepository).findByTitleContains("title", user.getId(), Pageable.unpaged());
         verifyNoMoreInteractions(taskRepository);
     }
 
@@ -321,12 +323,12 @@ class TaskServiceTest {
         TaskListFilter filter = new TaskListFilter(null, null, user);
         Task t1 = task(UUID.randomUUID(), "t1", "d1", LocalDate.now(), null, null);
 
-        when(taskRepository.findAllByUserId(user.getId())).thenReturn(List.of(t1));
+        when(taskRepository.findAllByUserId(user.getId(), Pageable.unpaged())).thenReturn(new PageImpl<>(List.of(t1)));
 
         TaskListResponse response = taskService().getAll(filter);
 
         assertThat(response.tasks()).containsExactly(Mapper.toTaskDto(t1));
-        verify(taskRepository).findAllByUserId(user.getId());
+        verify(taskRepository).findAllByUserId(user.getId(), Pageable.unpaged());
         verifyNoMoreInteractions(taskRepository);
     }
 

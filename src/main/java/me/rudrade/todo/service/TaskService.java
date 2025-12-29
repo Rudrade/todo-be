@@ -11,6 +11,9 @@ import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.model.Tag;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import me.rudrade.todo.dto.Mapper;
@@ -76,36 +79,30 @@ public class TaskService extends ServiceUtil {
 	public TaskListResponse getAll(TaskListFilter filter) {
 		validateFilter(filter);
 
-        List<Task> result = null;
+		Page<Task> result;
 		UUID userId = filter.user().getId();
         if (Filter.TODAY.equals(filter.filter())) {
-            result = repository.findDueToday(userId);
+            result = repository.findDueToday(userId, Pageable.unpaged());
 
         } else if (Filter.UPCOMING.equals(filter.filter())) {
-            result = repository.findDueUpcoming(userId);
+            result = repository.findDueUpcoming(userId, Pageable.unpaged());
 
         } else if (Filter.SEARCH.equals(filter.filter())) {
-			result = repository.findByTitleContains(filter.searchTerm(), userId);
+			result = repository.findByTitleContains(filter.searchTerm(), userId, Pageable.unpaged());
 
 		} else if (Filter.LIST.equals(filter.filter())) {
-			Optional<UserList> lst = userListService.findByName(filter.searchTerm(), filter.user());
-			if (lst.isPresent()) {
-				result = lst.get().getTasks();
-			}
+			result = repository.findAllByUserListNameAndUserId(filter.searchTerm(), userId, Pageable.unpaged());
 
 		} else if (Filter.TAG.equals(filter.filter())) {
-			Optional<Tag> tag = tagService.findByName(filter.searchTerm(), filter.user());
-			if (tag.isPresent()) {
-				result = tag.get().getTasks();
-			}
+			result = repository.findAllByTagsNameAndUserId(filter.searchTerm(), userId, Pageable.unpaged());
 
         } else {
-            result = repository.findAllByUserId(userId);
+            result = repository.findAllByUserId(userId, Pageable.unpaged());
         }
 
 		return new TaskListResponse(
-			0,
-			result == null ? List.of() : result.stream().map(Mapper::toTaskDto).toList()
+			result.getTotalElements(),
+			result.map(Mapper::toTaskDto).toList()
 		);
 	}
 
