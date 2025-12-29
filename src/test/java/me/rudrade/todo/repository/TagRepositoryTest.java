@@ -6,41 +6,113 @@ import me.rudrade.todo.model.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.stereotype.Service;
 import org.springframework.test.context.jdbc.Sql;
 
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
-@DataJpaTest
-@Sql("/sql-scripts/INIT_USERS.sql")
+@DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
+@Sql("/sql-scripts/INIT_TAGS.sql")
 class TagRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private TagRepository repository;
-    @Autowired private UserRepository userRepository;
+
+    private List<Tag> lstTags = null;
+    private List<Tag> getTags() {
+        if (lstTags == null) {
+            lstTags = new ArrayList<>();
+            repository.findAll().forEach(lstTags::add);
+            assertThat(lstTags).as("No tags present in DB.").isNotEmpty();
+        }
+
+        return lstTags;
+    }
 
     @Test
     void itShouldFindByUserId() {
-        User user = userRepository.findByUsername("valid-user").orElseThrow();
-
-        Tag tag = new Tag();
-        tag.setName("test-tag");
-        tag.setColor("red");
-        tag.setUser(user);
-        repository.save(tag);
-
-        Tag tag2 = new Tag();
-        tag2.setName("test-tag-2");
-        tag2.setColor("blue");
-        tag2.setUser(user);
-        repository.save(tag2);
+        User user = getTestUser();
 
         List<Tag> result = repository.findByUserId(user.getId());
 
         assertThat(result)
-            .usingElementComparator(Comparator.comparing(Tag::getId).thenComparing(Tag::getColor).thenComparing(Tag::getName))
-            .containsExactlyInAnyOrderElementsOf(List.of(tag, tag2));
+            .isNotEmpty()
+            .containsExactlyInAnyOrderElementsOf(
+                getTags().stream()
+                .filter(t -> sameUser(t.getUser(), user))
+                .toList());
+    }
+
+    @Test
+    void itShouldFindByNameAndUserId() {
+        User user = getTestUser();
+        Tag expected = getTags().stream()
+            .filter(t -> sameUser(t.getUser(), user))
+            .findFirst()
+            .orElseThrow();
+
+        var result = repository.findByNameAndUserId(expected.getName(), user.getId());
+
+        assertThat(result)
+            .isPresent()
+            .get()
+            .satisfies(tag -> {
+                assertThat(tag.getId()).isEqualTo(expected.getId());
+                assertThat(tag.getName()).isEqualTo(expected.getName());
+                assertThat(tag.getColor()).isEqualTo(expected.getColor());
+                assertThat(sameUser(tag.getUser(), user)).isTrue();
+            });
+    }
+
+    @Test
+    void itShouldNotFindByNameWhenUserDoesNotOwnTag() {
+        User user = getTestUser();
+        Tag otherUserTag = getTags().stream()
+            .filter(t -> !sameUser(t.getUser(), user))
+            .findFirst()
+            .orElseThrow();
+
+        var result = repository.findByNameAndUserId(otherUserTag.getName(), user.getId());
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void itShouldFindByIdAndUserId() {
+        User user = getTestUser();
+        Tag expected = getTags().stream()
+            .filter(t -> sameUser(t.getUser(), user))
+            .findFirst()
+            .orElseThrow();
+
+        var result = repository.findByIdAndUserId(expected.getId(), user.getId());
+
+        assertThat(result)
+            .isPresent()
+            .get()
+            .satisfies(tag -> {
+                assertThat(tag.getId()).isEqualTo(expected.getId());
+                assertThat(tag.getName()).isEqualTo(expected.getName());
+                assertThat(tag.getColor()).isEqualTo(expected.getColor());
+                assertThat(sameUser(tag.getUser(), user)).isTrue();
+            });
+    }
+
+    @Test
+    void itShouldNotFindByIdWhenUserDoesNotOwnTag() {
+        User user = getTestUser();
+        Tag otherUserTag = getTags().stream()
+            .filter(t -> !sameUser(t.getUser(), user))
+            .findFirst()
+            .orElseThrow();
+
+        var result = repository.findByIdAndUserId(otherUserTag.getId(), user.getId());
+
+        assertThat(result).isEmpty();
     }
 
 }

@@ -2,6 +2,8 @@ package me.rudrade.todo.service;
 
 import java.util.Date;
 
+import me.rudrade.todo.exception.InvalidDataException;
+import me.rudrade.todo.model.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +15,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 public class JwtService {
 	
 	private static final String CLAIM_USERNAME = "username";
+	private static final String CLAIM_ROLE = "role";
 
 	@Value("${jwt-secret-key}")
 	private String secretKey;
@@ -23,20 +26,16 @@ public class JwtService {
 	@Value("${jwt-issuer}")
 	private String issuer;
 	
-	public long getExpirationTime() {
-		return jwtExpiration;
-	}
-	
-	public String generateToken(String username) {
-		return buildToken(jwtExpiration, username);
-	}
-	
-	private String buildToken(long expiration, String username) {
+	public String generateToken(User user) {
+		if (user == null)
+			throw new InvalidDataException("User must exist to generate a token.");
+
 		return JWT.create()
 				.withIssuer(issuer)
-				.withClaim(CLAIM_USERNAME, username)
+				.withClaim(CLAIM_USERNAME, user.getUsername())
+				.withClaim(CLAIM_ROLE, user.getRole()==null?"":user.getRole().name())
 				.withIssuedAt(new Date(System.currentTimeMillis()))
-				.withExpiresAt(new Date(System.currentTimeMillis() + expiration))
+				.withExpiresAt(new Date(System.currentTimeMillis() + jwtExpiration))
 				.sign(getAlgorithm());
 	}
 	
@@ -45,14 +44,22 @@ public class JwtService {
 	}
 	
 	public String extractUsername(String token) {
-		if (token.startsWith("Bearer ")) {
-			token = token.substring(7);
+		if (token != null) {
+			if (token.startsWith("Bearer ")) {
+				token = token.substring(7);
+			}
+			return JWT.decode(token).getClaim(CLAIM_USERNAME).asString();
 		}
 
-		return JWT.decode(token).getClaim(CLAIM_USERNAME).asString();
+		return null;
 	}
 	
 	public boolean isTokenValid(String token, String username) {
+		if (token == null || token.isBlank() ||
+			username == null || username.isBlank()) {
+			return false;
+		}
+
 		DecodedJWT decodedJwt = JWT.require(getAlgorithm())
 				.withIssuer(issuer)
 				.build()

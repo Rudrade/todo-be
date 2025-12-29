@@ -8,9 +8,9 @@ import me.rudrade.todo.dto.response.UserListResponse;
 import me.rudrade.todo.service.AuthenticationService;
 import me.rudrade.todo.service.UserListService;
 import org.springframework.data.repository.query.Param;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.annotation.Nonnull;
 import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.service.TaskService;
 
@@ -29,30 +29,43 @@ public class TodoController {
 	}
 
 	@PostMapping("/save")
-	public TaskDto saveTask(@RequestBody @Nonnull TaskDto task, @RequestHeader("Authorization") @Nonnull String authToken) {
-		return service.saveTask(task, authenticationService.getUserByAuth(authToken).orElse(null));
+	public TaskDto saveTask(@RequestBody TaskDto task,
+							@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken) {
+
+		return service.saveTask(task, authenticationService.getUserByAuth(authToken));
 	}
 	
 	@GetMapping()
-	public TaskListResponse getAll(@Param("filter") String filter, @Param("searchTerm") String searchTerm) {
+	public TaskListResponse getAll(
+		@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
+		@Param("filter") String filter, @Param("searchTerm") String searchTerm) {
+
         TaskListFilter listFilter = new TaskListFilter(
                 filter==null || filter.isEmpty() ? null : TaskListFilter.Filter.valueOf(filter.toUpperCase()),
-                searchTerm);
+                searchTerm,
+				authenticationService.getUserByAuth(authToken));
+
         return service.getAll(listFilter);
 	}
 	
 	@GetMapping("/detail/{id}")
-	public TaskDto getDetail(@PathVariable @Nonnull UUID id) {
-		return service.getById(id);
+	public TaskDto getDetail(
+		@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
+		@PathVariable UUID id) {
+
+		return service.getById(id, authenticationService.getUserByAuth(authToken));
 	}
 	
 	@DeleteMapping("/remove/{id}")
-	public void delete(@PathVariable @Nonnull UUID id) {
-		service.deleteById(id);
+	public void delete(
+		@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
+		@PathVariable UUID id) {
+
+		service.deleteById(id, authenticationService.getUserByAuth(authToken));
 	}
 
 	@GetMapping("/lists")
-	public UserListResponse getUserLists(@RequestHeader("Authorization") @Nonnull String authToken) {
+	public UserListResponse getUserLists(@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken) {
 		return new UserListResponse(userListService.getUserListsByToken(authToken));
 	}
 }

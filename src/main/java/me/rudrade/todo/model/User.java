@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import lombok.Getter;
@@ -29,6 +30,16 @@ public class User implements UserDetails {
 	@Column(nullable = false, unique = true)
 	private String username;
 
+	@Column(nullable = false)
+	private String password;
+
+	@Column(nullable = false)
+	@Enumerated(EnumType.STRING)
+	private Role role;
+
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
+	private List<Task> tasks;
+
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
 	private List<UserList> userLists;
 
@@ -37,12 +48,14 @@ public class User implements UserDetails {
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return List.of();
+		if (this.role == null)
+			return List.of();
+		return List.of(new SimpleGrantedAuthority(this.role.name()));
 	}
 
 	@Override
 	public String getPassword() {
-		return null;
+		return this.password;
 	}
 
 	@Override
@@ -56,4 +69,19 @@ public class User implements UserDetails {
 	public int hashCode() {
 		return Objects.hash(id, username);
 	}
+
+	public enum Role {
+		ROLE_USER("USER"),
+		ROLE_ADMIN("ADMIN");
+
+		private final String suffix;
+		Role(String suffix) {
+			this.suffix = suffix;
+		}
+		public String getSuffix() {
+			return suffix;
+		}
+	}
 }
+
+

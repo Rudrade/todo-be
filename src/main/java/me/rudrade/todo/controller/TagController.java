@@ -1,16 +1,15 @@
 package me.rudrade.todo.controller;
 
-import jakarta.annotation.Nonnull;
 import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.TagDto;
 import me.rudrade.todo.dto.response.TagListResponse;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.service.AuthenticationService;
 import me.rudrade.todo.service.TagService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -26,12 +25,10 @@ public class TagController {
     }
 
     @GetMapping()
-    public TagListResponse getAll(@RequestHeader("Authorization") @Nonnull String authToken) {
-        Optional<User> user = authenticationService.getUserByAuth(authToken);
-        if (user.isEmpty())
-            return new TagListResponse(List.of());
+    public TagListResponse getAll(@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken) {
+        User user = authenticationService.getUserByAuth(authToken);
 
-        List<TagDto> lstDto = tagService.findByUser(user.get()).stream()
+        List<TagDto> lstDto = tagService.findByUser(user).stream()
             .map(Mapper::toTagDto)
             .toList();
 
@@ -39,7 +36,7 @@ public class TagController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteTag(@PathVariable UUID id) {
-        tagService.deleteById(id);
+    public void deleteTag(@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken, @PathVariable UUID id) {
+        tagService.deleteById(id, authenticationService.getUserByAuth(authToken));
     }
 }

@@ -1,10 +1,11 @@
 package me.rudrade.todo.service;
 
 import me.rudrade.todo.dto.UserListDto;
+import me.rudrade.todo.exception.InvalidAccessException;
+import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.UserListRepository;
-import me.rudrade.todo.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -15,13 +16,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserListServiceTest {
 
-    @Mock private JwtService jwtService;
-    @Mock private UserRepository userRepository;
     @Mock private UserListRepository userListRepository;
     @Mock private AuthenticationService authenticationService;
 
@@ -35,49 +35,60 @@ class UserListServiceTest {
 
     @Test
     void itShouldGetUserListByToken() {
-        UserList list1 = new UserList();
-        list1.setId(UUID.randomUUID());
-        list1.setName("First");
-
-        UserList list2 = new UserList();
-        list2.setId(UUID.randomUUID());
-        list2.setName("Name");
+        UserList list1 = new UserList(UUID.randomUUID(), "First", "red", null, null);
+        UserList list2 = new UserList(UUID.randomUUID(), "Name", "blue", null, null);
 
         User user = new User();
+        user.setId(UUID.randomUUID());
         user.setUsername("user-test");
         user.setUserLists(List.of(list1, list2));
 
         when(authenticationService.getUserByAuth("token-test"))
-            .thenReturn(Optional.of(user));
+            .thenReturn(user);
 
         List<UserListDto> result = getUserService().getUserListsByToken("token-test");
 
         assertThat(result)
             .hasSize(2)
-            .allSatisfy(lst -> {
-                assertThat(lst.name()).isNotBlank();
-            });
+            .extracting(UserListDto::name)
+            .containsExactlyInAnyOrder("First", "Name");
+
+        verify(authenticationService, times(1)).getUserByAuth("token-test");
+        verifyNoMoreInteractions(authenticationService);
+        verifyNoInteractions(userListRepository);
     }
 
     @Test
-    void itShouldGetEmptyUserListByTokenWhenUserIsNotFound() {
-        when(authenticationService.getUserByAuth("token-test"))
-            .thenReturn(Optional.empty());
+    void itShouldThrowWhenTokenIsNull() {
+        UserListService service = getUserService();
 
-        List<UserListDto> result = getUserService().getUserListsByToken("token-test");
+        assertThrows(InvalidAccessException.class, () -> service.getUserListsByToken(null));
 
-        assertThat(result).isEmpty();
+        verifyNoInteractions(authenticationService, userListRepository);
     }
 
     @Test
-    void itShouldSaveByName() {
-        when(userListRepository.findByName("test-list"))
-            .thenReturn(Optional.empty());
+    void itShouldThrowWhenTokenIsBlank() {
+        UserListService service = getUserService();
 
+        assertThrows(InvalidAccessException.class, () -> service.getUserListsByToken("   "));
+
+        verifyNoInteractions(authenticationService, userListRepository);
+    }
+
+    @Test
+    void itShouldSaveByNameWhenNotExists() {
         User user = new User();
+        user.setId(UUID.randomUUID());
 
-        when(userListRepository.save(any()))
-            .thenReturn(new UserList(UUID.randomUUID(), "test-list", null, user, null));
+        when(userListRepository.findByNameAndUserId("test-list", user.getId()))
+            .thenReturn(Optional.empty());
+        when(userListRepository.save(any(UserList.class)))
+            .thenAnswer(invocation -> {
+                UserList saved = invocation.getArgument(0);
+                saved.setId(UUID.randomUUID());
+                return saved;
+            });
 
         UserList result = getUserService().saveByName("test-list", user);
 
@@ -86,43 +97,95 @@ class UserListServiceTest {
             .satisfies(lst -> {
                assertThat(lst.getId()).isNotNull();
                assertThat(lst.getName()).isEqualTo("test-list");
+               assertThat(lst.getColor()).isNotBlank();
+               assertThat(lst.getUser()).isEqualTo(user);
             });
 
-        verify(userListRepository, times(1)).findByName("test-list");
+        verify(userListRepository, times(1)).findByNameAndUserId("test-list", user.getId());
         verify(userListRepository, times(1)).save(any(UserList.class));
         verifyNoMoreInteractions(userListRepository);
+        verifyNoInteractions(authenticationService);
     }
 
     @Test
-    void itShouldNotSaveNewByName() {
-        UserList list = new UserList();
-        list.setId(UUID.randomUUID());
-        list.setName("test-list");
-
-        when(userListRepository.findByName("test-list"))
-            .thenReturn(Optional.of(list));
-
+    void itShouldReturnExistingWhenSaveByNameFindsOne() {
         User user = new User();
+        user.setId(UUID.randomUUID());
+        UserList existing = new UserList(UUID.randomUUID(), "test-list", "red", user, null);
+
+        when(userListRepository.findByNameAndUserId("test-list", user.getId()))
+            .thenReturn(Optional.of(existing));
 
         UserList result = getUserService().saveByName("test-list", user);
 
-        assertThat(result)
-            .usingRecursiveComparison()
-            .ignoringFields("user", "tasks")
-            .isEqualTo(list);
+        assertThat(result).isEqualTo(existing);
 
-        verify(userListRepository, times(1)).findByName("test-list");
+        verify(userListRepository, times(1)).findByNameAndUserId("test-list", user.getId());
         verifyNoMoreInteractions(userListRepository);
+        verifyNoInteractions(authenticationService);
+    }
+
+    @Test
+    void itShouldThrowWhenSaveByNameWithNullUser() {
+        UserListService service = getUserService();
+
+        assertThrows(InvalidAccessException.class, () -> service.saveByName("name", null));
+
+        verifyNoInteractions(userListRepository, authenticationService);
+    }
+
+    @Test
+    void itShouldThrowWhenSaveByNameWithBlankName() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        UserListService service = getUserService();
+
+        assertThrows(InvalidDataException.class, () -> service.saveByName("   ", user));
+
+        verifyNoInteractions(userListRepository, authenticationService);
+    }
+
+    @Test
+    void itShouldThrowWhenSaveByNameWithNullName() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        UserListService service = getUserService();
+
+        assertThrows(InvalidDataException.class, () -> service.saveByName(null, user));
+
+        verifyNoInteractions(userListRepository, authenticationService);
     }
 
     @Test
     void itShouldFindByName() {
-        String listName = "Test";
-        when(userListRepository.findByName(listName)).thenReturn(Optional.of(new UserList()));
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        UserList list = new UserList(UUID.randomUUID(), "Test", "red", user, null);
 
-        getUserService().findByName(listName);
+        when(userListRepository.findByNameAndUserId("Test", user.getId()))
+            .thenReturn(Optional.of(list));
 
-        verify(userListRepository, times(1)).findByName(listName);
+        Optional<UserList> result = getUserService().findByName("Test", user);
+
+        assertThat(result).contains(list);
+        verify(userListRepository, times(1)).findByNameAndUserId("Test", user.getId());
+        verifyNoMoreInteractions(userListRepository);
+        verifyNoInteractions(authenticationService);
+    }
+
+    @Test
+    void itShouldThrowWhenFindByNameWithInvalidArgs() {
+        User validUser = new User();
+        validUser.setId(UUID.randomUUID());
+        User userWithoutId = new User();
+        UserListService service = getUserService();
+
+        assertThrows(InvalidAccessException.class, () -> service.findByName(null, validUser));
+        assertThrows(InvalidAccessException.class, () -> service.findByName("   ", validUser));
+        assertThrows(InvalidAccessException.class, () -> service.findByName("name", null));
+        assertThrows(InvalidAccessException.class, () -> service.findByName("name", userWithoutId));
+
+        verifyNoInteractions(userListRepository, authenticationService);
     }
 
 }

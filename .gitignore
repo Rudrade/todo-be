@@ -34,3 +34,4 @@ build/
 
 ### Local prop files ###
 application-local.properties
+application.properties
