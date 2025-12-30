@@ -1,9 +1,8 @@
 package me.rudrade.todo.config;
 
-import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.UserRepository;
-import me.rudrade.todo.service.AuthenticationService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -22,6 +21,7 @@ public abstract class SqlIntegrationTest {
 
     public static final String TEST_USERNAME = "valid-user";
     public static final String TEST_PASSWORD = "test123";
+    public static final String TEST_EMAIL = "test@mail.com";
 
     @Container
     static SqlContainer sqlContainer = new SqlContainer();
@@ -41,15 +41,24 @@ public abstract class SqlIntegrationTest {
         registry.add("db_password", sqlContainer::getPassword);
     }
 
-    @Autowired private AuthenticationService authenticationService;
     @Autowired private UserRepository userRepository;
 
     public User getTestUser() {
         Optional<User> user = userRepository.findByUsername(TEST_USERNAME);
         if (user.isEmpty()) {
-            authenticationService.createUser(new UserDto(TEST_USERNAME, TEST_PASSWORD));
+            var adminTmp = new User();
+            adminTmp.setRole(Role.ROLE_ADMIN);
+
+            var userTmp = new User();
+            userTmp.setActive(true);
+            userTmp.setEmail(TEST_EMAIL);
+            userTmp.setUsername(TEST_USERNAME);
+            userTmp.setPassword(PasswordEncoderFactories.createDelegatingPasswordEncoder().encode(TEST_PASSWORD));
+            userTmp.setRole(Role.ROLE_USER);
+
+            userRepository.save(userTmp);
             user = userRepository.findByUsername(TEST_USERNAME);
-        } else if (user.get().getPassword().isBlank()) {
+        } else if (user.get().getPassword().isBlank() || user.get().getPassword().equals("change")) {
             user.get().setPassword(PasswordEncoderFactories.createDelegatingPasswordEncoder().encode(TEST_PASSWORD));
             userRepository.save(user.get());
         }

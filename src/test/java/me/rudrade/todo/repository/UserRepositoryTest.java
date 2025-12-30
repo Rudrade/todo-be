@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.*;
 
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.types.Role;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -22,8 +24,9 @@ class UserRepositoryTest extends  SqlIntegrationTest {
     void itShouldFindByUsername() {
         User user = new User();
         user.setUsername("test-user");
-        user.setPassword("");
-        user.setRole(User.Role.ROLE_USER);
+        user.setPassword("test");
+        user.setRole(Role.ROLE_USER);
+        user.setEmail("test-user@test.com");
 
         User savedUser = repository.save(user);
 

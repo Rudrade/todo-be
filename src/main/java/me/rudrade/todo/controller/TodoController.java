@@ -7,7 +7,6 @@ import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.dto.response.UserListResponse;
 import me.rudrade.todo.service.AuthenticationService;
 import me.rudrade.todo.service.UserListService;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +37,9 @@ public class TodoController {
 	@GetMapping()
 	public TaskListResponse getAll(
 		@RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
-		@Param("filter") String filter, @Param("searchTerm") String searchTerm) {
+		@RequestParam(required = false) String filter,
+		@RequestParam(required = false) String searchTerm
+	) {
 
         TaskListFilter listFilter = new TaskListFilter(
                 filter==null || filter.isEmpty() ? null : TaskListFilter.Filter.valueOf(filter.toUpperCase()),

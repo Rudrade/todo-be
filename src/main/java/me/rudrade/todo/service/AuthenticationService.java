@@ -6,7 +6,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import me.rudrade.todo.dto.UserDto;
+import me.rudrade.todo.dto.UserLoginDto;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.UserRepository;
 
@@ -26,7 +26,7 @@ public class AuthenticationService {
 		this.passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
 	}
 
-	public LoginResponse authenticate(UserDto user) {
+	public LoginResponse authenticate(UserLoginDto user) {
 		if (user == null ||
 			user.username() == null || user.username().isBlank() ||
 			user.password() == null || user.password().isBlank())
@@ -37,6 +37,9 @@ public class AuthenticationService {
 			 throw new InvalidAccessException();
 
 		 if (!passwordEncoder.matches(user.password(), optUser.get().getPassword()))
+			 throw new InvalidAccessException();
+
+		 if (!optUser.get().isActive())
 			 throw new InvalidAccessException();
 
 		return new LoginResponse(jwtService.generateToken(optUser.get()));
@@ -51,16 +54,6 @@ public class AuthenticationService {
 			throw new InvalidAccessException();
 
 		return userRepository.findByUsername(username).orElseThrow(InvalidAccessException::new);
-	}
-
-	// TODO: Impl this right when feature is fully implemented
-	public void createUser(UserDto userDto) {
-		User user = new User();
-		user.setUsername(userDto.username());
-		user.setRole(User.Role.ROLE_USER);
-		user.setPassword(passwordEncoder.encode(userDto.password()));
-
-		userRepository.save(user);
 	}
 
 }
