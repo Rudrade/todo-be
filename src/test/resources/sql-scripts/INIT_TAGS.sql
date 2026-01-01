@@ -6,6 +6,7 @@ INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_T
 ON DUPLICATE KEY UPDATE id=id;
 
 -- Tag
+DELETE FROM tag_task;
 DELETE FROM tag;
 
 INSERT INTO tag (id, name, color, user_id)

@@ -5,6 +5,9 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.mail.MessagingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -31,9 +34,12 @@ import me.rudrade.todo.util.ServiceUtil;
 @AllArgsConstructor
 public class UserService extends ServiceUtil {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+
     private final UserRepository userRepository;
     private final UserRequestRepository userRequestRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MailService mailService;
 
     public UserRequest createUser(@NotNull UserRequestDto request) {
         var user = Mapper.toUserRequest(request);
@@ -44,7 +50,20 @@ public class UserService extends ServiceUtil {
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         
-        return userRequestRepository.save(user);
+        userRequestRepository.save(user);
+
+        // Send activation mail and mark mail as sent
+        try {
+            mailService.sendActivationMail(user);
+
+            user.setMailSent(true);
+            userRequestRepository.save(user);
+
+        } catch (MessagingException e) {
+            logger.error("Error sending mail", e);
+        }
+
+        return user;
     }
 
     public User getById(
@@ -163,6 +182,31 @@ public class UserService extends ServiceUtil {
         return users.stream()
             .map(Mapper::toUserDto)
             .toList();
+    }
+
+    public UserDto activateUser(UUID id) {
+        // Find if request exists
+        var optRequest = userRequestRepository.findById(id);
+        if (optRequest.isEmpty())
+            throw new InvalidDataException("User request doesn't exist");
+
+        // Copy request to new user
+        var request = optRequest.get();
+        var user = new User();
+        user.setUsername(request.getUsername());
+        user.setPassword(request.getPassword());
+        user.setEmail(request.getEmail());
+        user.setRole(request.getRole());
+        user.setActive(true);
+
+        // Insert user
+        userRepository.save(user);
+
+        // delete the request
+        userRequestRepository.deleteById(id);
+
+        // return the new user
+        return Mapper.toUserDto(user);
     }
 
 }

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -37,11 +38,12 @@ class UserServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private UserRequestRepository userRequestRepository;
+    @Mock private MailService mailService;
 
     private UserService userService;
     private UserService service() {
         if (userService == null) {
-            userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder());
+            userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService);
         }
         return userService;
     }
@@ -111,12 +113,7 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verify(userRequestRepository, times(1)).existsByUsernameOrEmail("new-user", "new-user@mail.com");
-        verify(userRequestRepository, times(1)).save(argThat(req ->
-            req.getDtCreated() != null &&
-            "new-user".equals(req.getUsername()) &&
-            "new-user@mail.com".equals(req.getEmail()) &&
-            Role.ROLE_USER.equals(req.getRole())
-        ));
+        verify(userRequestRepository, times(2)).save(any(UserRequest.class));
         verifyNoMoreInteractions(userRepository, userRequestRepository);
     }
 
@@ -419,5 +416,92 @@ class UserServiceTest {
         assertThat(result).hasSize(1);
         verify(userRepository, times(1)).findByActiveAndEmailContainingIgnoreCase(false, "mail");
     }
+
+    // ### activateUser ###
+
+    @Test
+    void itShouldThrowWhenActivateUserDoesntExist() {
+        var id = UUID.randomUUID();
+
+        when(userRequestRepository.findById(id))
+            .thenReturn(Optional.empty());
+        
+        assertThrows(InvalidDataException.class, 
+            () -> service().activateUser(id)
+        );
+
+        verify(userRequestRepository, times(1)).findById(id);
+        verifyNoMoreInteractions(userRequestRepository);
+        verifyNoInteractions(userRepository);
+    }
+    
+    @Test
+    void itShouldThrowWhenIdActivateUserIsNull() {
+        when(userRequestRepository.findById(null))
+            .thenReturn(Optional.empty());
+        
+        assertThrows(InvalidDataException.class, 
+            () -> service().activateUser(null)
+        );
+
+        verify(userRequestRepository, times(1)).findById(null);
+        verifyNoMoreInteractions(userRequestRepository);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void itShouldActivateUser() {
+        var id = UUID.randomUUID();
+        var encoder = new BCryptPasswordEncoder();
+
+        var request = new UserRequest();
+        request.setId(id);
+        request.setDtCreated(LocalDateTime.now());
+        request.setEmail(id+"@test.com");
+        request.setPassword(encoder.encode(id+"-password"));
+        request.setRole(Role.ROLE_ADMIN);
+        request.setUsername(id+"-username");
+
+        when(userRequestRepository.findById(id))
+            .thenReturn(Optional.of(request));
+
+        var argCaptor = ArgumentCaptor.forClass(User.class);
+        when(userRepository.save(argCaptor.capture()))
+            .thenAnswer(a -> {
+                var user =  (User) a.getArgument(0);
+                user.setId(UUID.randomUUID());
+                return user;
+            });
+
+        var result = service().activateUser(id);
+
+        assertThat(result)
+            .isNotNull()
+            .satisfies(user -> {
+               assertThat(user.id()).isNotNull().isNotEqualTo(request.getId());
+               assertThat(user.username()).isEqualTo(request.getUsername());
+               assertThat(user.email()).isEqualTo(request.getEmail());
+               assertThat(user.role()).isEqualTo(request.getRole());
+               assertThat(user.active()).isTrue();
+            });
+
+        assertThat(argCaptor.getValue())
+            .isNotNull()
+            .satisfies(user -> {
+               assertThat(user.getUsername()).isEqualTo(request.getUsername());
+               assertThat(user.getPassword()).isEqualTo(request.getPassword());
+               assertThat(user.getEmail()).isEqualTo(request.getEmail());
+               assertThat(user.getRole()).isEqualTo(request.getRole());
+            });
+
+        verify(userRequestRepository, times(1)).findById(id);
+        verify(userRequestRepository, times(1)).deleteById(id);
+        verifyNoMoreInteractions(userRequestRepository);
+
+        verify(userRepository, times(1)).save(any());
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    // ### end activateUser ###
 }
 

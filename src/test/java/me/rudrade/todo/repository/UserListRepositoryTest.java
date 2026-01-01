@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 @Sql("/sql-scripts/INIT_USER_LISTS.sql")
-@Import(ConfigurationUtil.class)
+@Import({ConfigurationUtil.PasswordEncoder.class, ConfigurationUtil.MailSender.class})
 class UserListRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private UserListRepository repository;

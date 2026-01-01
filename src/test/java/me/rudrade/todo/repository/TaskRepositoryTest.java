@@ -23,7 +23,7 @@ import java.util.List;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 @Sql("/sql-scripts/INIT_TASKS.sql")
-@Import(ConfigurationUtil.class)
+@Import({ConfigurationUtil.PasswordEncoder.class, ConfigurationUtil.MailSender.class})
 class TaskRepositoryTest extends SqlIntegrationTest  {
 
     @Autowired private TaskRepository repository;

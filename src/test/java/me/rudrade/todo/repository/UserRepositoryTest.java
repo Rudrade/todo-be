@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.Sql.ExecutionPhase;
 
-@Import(ConfigurationUtil.class)
+@Import({ConfigurationUtil.PasswordEncoder.class, ConfigurationUtil.MailSender.class})
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 @Sql(scripts = "/sql-scripts/INIT_USERS.sql", executionPhase = ExecutionPhase.BEFORE_TEST_CLASS)
 class UserRepositoryTest extends  SqlIntegrationTest {

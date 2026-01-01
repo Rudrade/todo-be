@@ -2,6 +2,7 @@ package me.rudrade.todo.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import me.rudrade.todo.config.ControllerIntegration;
@@ -11,6 +12,7 @@ import me.rudrade.todo.dto.UserRequestDto;
 import me.rudrade.todo.dto.response.UsersResponse;
 import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
@@ -29,6 +31,7 @@ class UserControllerTest extends ControllerIntegration {
     private static final String URI_GET_USER = "/todo/api/users/{id}";
     private static final String URI_UPDATE_USER = "/todo/api/users/{id}";
     private static final String URI_GET_USERS = "/todo/api/users";
+    private static final String URI_ACTIVATE_USER = "/todo/api/users/activate/{id}";
 
     @Autowired private MockMvcTester mvc;
     @Autowired private UserRequestRepository userRequestRepository;
@@ -62,7 +65,7 @@ class UserControllerTest extends ControllerIntegration {
     }
 
     @Test
-    void itShouldReturnUserWhenAdminRequests() throws Exception {
+    void itShouldReturnUserWhenAdminRequests() {
         User existing = getTestUser();
 
         assertThat(mvc.get().uri(URI_GET_USER, existing.getId())
@@ -80,7 +83,7 @@ class UserControllerTest extends ControllerIntegration {
     }
 
     @Test
-    void itShouldReturnBadRequestWhenUserNotFound() throws Exception {
+    void itShouldReturnBadRequestWhenUserNotFound() {
         assertThat(mvc.get().uri(URI_GET_USER, UUID.randomUUID())
             .headers(getAdminAuthHeader())
         ).hasStatus(HttpStatus.BAD_REQUEST);
@@ -285,10 +288,40 @@ class UserControllerTest extends ControllerIntegration {
     }
 
     @Test
-    void itShouldReturnForbiddenWhenListingUsersAsUser() throws Exception {
+    void itShouldReturnForbiddenWhenListingUsersAsUser() {
         assertThat(mvc.get().uri(URI_GET_USERS)
             .headers(getAuthHeader())
         ).hasStatus(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void itShouldActivateUser() {
+        var request = new UserRequest();
+        request.setUsername("request-user");
+        request.setPassword(encoder.encode("request-pass"));
+        request.setEmail("request-mail@test");
+        request.setRole(Role.ROLE_USER);
+        request.setDtCreated(LocalDateTime.now());
+        userRequestRepository.save(request);
+
+        assertThat(mvc.post().uri(URI_ACTIVATE_USER, request.getId()))
+            .hasStatusOk();
+
+        var dbRequest = userRequestRepository.findById(request.getId());
+        assertThat(dbRequest).isEmpty();
+
+        var dbUser =  userRepository.findByUsername(request.getUsername());
+        assertThat(dbUser)
+            .isPresent()
+            .satisfies(opt -> {
+               var user = opt.get();
+               assertThat(user.getUsername()).isEqualTo(request.getUsername());
+               assertThat(user.getPassword()).isEqualTo(request.getPassword());
+               assertThat(user.getEmail()).isEqualTo(request.getEmail());
+               assertThat(user.getRole()).isEqualTo(request.getRole());
+               assertThat(user.getId()).isNotNull().isNotEqualTo(request.getId());
+               assertThat(user.isActive()).isTrue();
+            });
     }
 
 }

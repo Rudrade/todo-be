@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Service;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
-@Import(ConfigurationUtil.class)
+@Import({ConfigurationUtil.PasswordEncoder.class, ConfigurationUtil.MailSender.class})
 class UserRequestRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private UserRequestRepository repository;
@@ -58,6 +58,22 @@ class UserRequestRepositoryTest extends SqlIntegrationTest {
         boolean exists = repository.existsByUsernameOrEmail("absent-user", "absent@mail.com");
 
         assertThat(exists).isFalse();
+    }
+
+    @Test
+    void itShouldDeleteIfExpired() {
+        var userRequest = new UserRequest();
+        userRequest.setDtCreated(LocalDateTime.now().minusMinutes(61));
+        userRequest.setRole(Role.ROLE_USER);
+        userRequest.setPassword("test");
+        userRequest.setUsername("user-expired");
+        userRequest.setEmail("email-expired@test.com");
+        repository.save(userRequest);
+
+        repository.deleteIfExpired(60);
+
+        var dbRequest = repository.findById(userRequest.getId());
+        assertThat(dbRequest).isNotPresent();
     }
 }
 

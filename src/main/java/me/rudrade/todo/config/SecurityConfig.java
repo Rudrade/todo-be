@@ -56,6 +56,7 @@ public class SecurityConfig {
 						.requestMatchers("/health/**").permitAll()
                         .requestMatchers("/todo/auth/login").permitAll()
 						.requestMatchers(HttpMethod.POST, "/todo/api/users/register").permitAll()
+						.requestMatchers(HttpMethod.POST, "/todo/api/users/activate/{id}").permitAll()
 						.requestMatchers(HttpMethod.PATCH, "/todo/api/users/{id}").hasAuthority(Role.ROLE_USER.name())
 						.requestMatchers("/todo/api/users/**").hasAuthority(Role.ROLE_ADMIN.name())
                         .requestMatchers("/todo/api/tag/**").hasAuthority(Role.ROLE_USER.name())

@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 @Sql("/sql-scripts/INIT_TAGS.sql")
-@Import(ConfigurationUtil.class)
+@Import({ConfigurationUtil.PasswordEncoder.class, ConfigurationUtil.MailSender.class})
 class TagRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private TagRepository repository;

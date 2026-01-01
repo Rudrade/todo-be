@@ -42,4 +42,7 @@ public class UserRequest {
     @Column(name = "dt_created", nullable = false, updatable = false)
     @NotNull
     private LocalDateTime dtCreated;
+
+	@Column(name = "mail_sent", nullable = false)
+	private boolean mailSent;
 }

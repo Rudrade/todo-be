@@ -6,6 +6,7 @@ INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_T
 ON DUPLICATE KEY UPDATE id=id;
 
 -- User Lists
+UPDATE task SET user_list_id = NULL;
 DELETE FROM user_list;
 
 INSERT INTO user_list (id, name, color, user_id)

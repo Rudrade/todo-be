@@ -62,5 +62,10 @@ public class UserController {
         return new UsersResponse(userService.getAllUsers(active, searchType, searchTerm, requester));
     }
 
+    @PostMapping("/activate/{id}")
+    public UserDto activateUser(@PathVariable UUID id) {
+        return userService.activateUser(id);
+    }
+
 
 }
