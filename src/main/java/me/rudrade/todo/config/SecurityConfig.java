@@ -2,10 +2,12 @@ package me.rudrade.todo.config;
 
 import java.util.List;
 
-import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.types.Role;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -41,7 +43,7 @@ public class SecurityConfig {
 	@Bean
 	RoleHierarchy roleHierarchy() {
 		return RoleHierarchyImpl.withDefaultRolePrefix()
-			.role(User.Role.ROLE_ADMIN.getSuffix()).implies(User.Role.ROLE_USER.getSuffix())
+			.role(Role.ROLE_ADMIN.getSuffix()).implies(Role.ROLE_USER.getSuffix())
 			.build();
 	}
 	
@@ -53,10 +55,12 @@ public class SecurityConfig {
                     authorizeHttpRequests
 						.requestMatchers("/health/**").permitAll()
                         .requestMatchers("/todo/auth/login").permitAll()
-						.requestMatchers("/todo/auth/users").hasAuthority(User.Role.ROLE_ADMIN.name())
-						.requestMatchers("/todo/auth/users/new").permitAll()
-                        .requestMatchers("/todo/api/tag/**").hasAuthority(User.Role.ROLE_USER.name())
-						.requestMatchers("/todo/api/task/**").hasAuthority(User.Role.ROLE_USER.name());
+						.requestMatchers(HttpMethod.POST, "/todo/api/users/register").permitAll()
+						.requestMatchers(HttpMethod.POST, "/todo/api/users/activate/{id}").permitAll()
+						.requestMatchers(HttpMethod.PATCH, "/todo/api/users/{id}").hasAuthority(Role.ROLE_USER.name())
+						.requestMatchers("/todo/api/users/**").hasAuthority(Role.ROLE_ADMIN.name())
+                        .requestMatchers("/todo/api/tag/**").hasAuthority(Role.ROLE_USER.name())
+						.requestMatchers("/todo/api/task/**").hasAuthority(Role.ROLE_USER.name());
 
                     if (!"prod".equals(currentProfile)) {
                         authorizeHttpRequests.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();
@@ -74,7 +78,7 @@ public class SecurityConfig {
 	private CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(List.of(corsUrl));
-		configuration.setAllowedMethods(List.of("GET", "POST", "DELETE"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "DELETE", "PATCH"));
 		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 		
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

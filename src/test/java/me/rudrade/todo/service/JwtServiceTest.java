@@ -5,6 +5,8 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.types.Role;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -99,7 +101,7 @@ class JwtServiceTest {
     private User user() {
         User user = new User();
         user.setUsername("john");
-        user.setRole(User.Role.ROLE_USER);
+        user.setRole(Role.ROLE_USER);
         return user;
     }
 }

@@ -7,14 +7,18 @@ import java.util.Objects;
 import java.util.UUID;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import lombok.Getter;
 import lombok.Setter;
+import me.rudrade.todo.model.types.Role;
 
-@Table(name = "USER")
+@Table(name = "user")
 @Entity
 @Getter
 @Setter
@@ -25,17 +29,28 @@ public class User implements UserDetails {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
+	@Column(name = "id", nullable = false, updatable = false)
 	private UUID id;
 	
-	@Column(nullable = false, unique = true)
+	@Column(name = "username", nullable = false, unique = true)
+	@NotBlank(message = "Username must not be blank")
 	private String username;
 
-	@Column(nullable = false)
+	@Column(name = "password", nullable = false)
+	@NotBlank(message = "Password must not be blank")
 	private String password;
 
-	@Column(nullable = false)
+	@Column(name = "email", nullable = false, unique = true)
+	@Email(message = "Email must be a valid address")
+	@NotBlank(message = "Email must not be blank")
+	private String email;
+
+	@Column(name = "role", nullable = false)
 	@Enumerated(EnumType.STRING)
 	private Role role;
+
+	@Column(name = "is_active", nullable = false)
+	private boolean active;
 
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
 	private List<Task> tasks;
@@ -70,18 +85,6 @@ public class User implements UserDetails {
 		return Objects.hash(id, username);
 	}
 
-	public enum Role {
-		ROLE_USER("USER"),
-		ROLE_ADMIN("ADMIN");
-
-		private final String suffix;
-		Role(String suffix) {
-			this.suffix = suffix;
-		}
-		public String getSuffix() {
-			return suffix;
-		}
-	}
 }
 
 

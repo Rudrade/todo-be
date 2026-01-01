@@ -1,11 +1,12 @@
 -- User
-INSERT INTO user (id, username, password, role) VALUES (UUID_TO_BIN(UUID()), 'valid-user', '', 'ROLE_USER')
+INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_TO_BIN(UUID()), 'valid-user', '', 'ROLE_USER', 'test@mail.com', true)
 ON DUPLICATE KEY UPDATE id=id;
 
-INSERT INTO user (id, username, password, role) VALUES (UUID_TO_BIN(UUID()), 'second-user', '', 'ROLE_USER')
+INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_TO_BIN(UUID()), 'second-user', '', 'ROLE_USER', 'test-2@mail.com', true)
 ON DUPLICATE KEY UPDATE id=id;
 
 -- Tag
+DELETE FROM tag_task;
 DELETE FROM tag;
 
 INSERT INTO tag (id, name, color, user_id)

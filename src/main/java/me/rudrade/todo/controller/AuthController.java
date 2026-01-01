@@ -3,7 +3,7 @@ package me.rudrade.todo.controller;
 import org.springframework.web.bind.annotation.*;
 
 import me.rudrade.todo.dto.response.LoginResponse;
-import me.rudrade.todo.dto.UserDto;
+import me.rudrade.todo.dto.UserLoginDto;
 import me.rudrade.todo.service.AuthenticationService;
 
 @RestController
@@ -17,18 +17,8 @@ public class AuthController {
 	}
 	
 	@PostMapping("/login")
-	public LoginResponse authenticate(@RequestBody UserDto userDto) {
+	public LoginResponse authenticate(@RequestBody UserLoginDto userDto) {
 		return authenticationService.authenticate(userDto);
 	}
 
-	@GetMapping("/users")
-	public String getUsers() {
-		return "Not implemented";
-	}
-
-	@PostMapping("/users/new")
-	public void createUser(@RequestBody UserDto userDto) {
-		authenticationService.createUser(userDto);
-	}
-	
 }

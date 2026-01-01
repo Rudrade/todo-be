@@ -1,5 +1,6 @@
 package me.rudrade.todo.repository;
 
+import me.rudrade.todo.config.ConfigurationUtil;
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.model.Tag;
 import me.rudrade.todo.model.User;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -18,6 +20,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 @Sql("/sql-scripts/INIT_TAGS.sql")
+@Import({ConfigurationUtil.PasswordEncoder.class, ConfigurationUtil.MailSender.class})
 class TagRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private TagRepository repository;

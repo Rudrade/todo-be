@@ -1,6 +1,8 @@
 package me.rudrade.todo.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "TAG", uniqueConstraints = {@UniqueConstraint(columnNames = {"user", "name"})})
+@Table(name = "tag", uniqueConstraints = {@UniqueConstraint(columnNames = {"user", "name"})})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,17 +21,20 @@ public class Tag {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "ID")
+    @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "NAME", nullable = false)
+    @Column(name = "name", nullable = false)
+    @NotBlank(message = "Name must not be blank")
     private String name;
 
-    @Column(name = "COLOR", nullable = false)
+    @Column(name = "color", nullable = false)
+    @NotBlank(message = "Color must not be blank")
     private String color;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USER_ID")
+    @JoinColumn(name = "user_id", nullable = false, updatable = false)
+    @NotNull(message = "An user must be associated")
     private User user;
 
     @ManyToMany(fetch = FetchType.LAZY, mappedBy = "tags")
