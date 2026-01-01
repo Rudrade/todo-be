@@ -1,5 +1,6 @@
 package me.rudrade.todo.repository;
 
+import me.rudrade.todo.config.ConfigurationUtil;
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.model.UserList;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.jdbc.Sql;
 
@@ -17,6 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 @Sql("/sql-scripts/INIT_USER_LISTS.sql")
+@Import(ConfigurationUtil.class)
 class UserListRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private UserListRepository repository;

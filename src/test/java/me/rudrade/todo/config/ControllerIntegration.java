@@ -14,8 +14,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import java.io.IOException;
@@ -40,20 +38,7 @@ public class ControllerIntegration extends SqlIntegrationTest {
     public HttpHeaders getAuthHeader() {
         if (authToken == null) {
             getTestUser();
-
-            try {
-                String strResponse = mvc.post().uri("/todo/auth/login")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(mapper.writeValueAsString(new UserLoginDto(TEST_USERNAME, TEST_PASSWORD)))
-                    .exchange()
-                    .getResponse()
-                    .getContentAsString();
-
-                LoginResponse response = mapper.readValue(strResponse, LoginResponse.class);
-                authToken = response.token();
-            } catch (IOException e) {
-                Assertions.fail(e);
-            }
+            authToken = getAuthToken(TEST_USERNAME, TEST_PASSWORD);
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -61,14 +46,38 @@ public class ControllerIntegration extends SqlIntegrationTest {
         return headers;
     }
 
+    public HttpHeaders getAuthHeader(String username, String password) {
+        var token = getAuthToken(username, password);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        return headers;
+    }
+
+    private String getAuthToken(String username, String password) {
+        try {
+            String strResponse = mvc.post().uri("/todo/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(new UserLoginDto(username, password)))
+                .exchange()
+                .getResponse()
+                .getContentAsString();
+
+            LoginResponse response = mapper.readValue(strResponse, LoginResponse.class);
+            return response.token();
+        } catch (IOException e) {
+            Assertions.fail(e);
+            return null;
+        }
+    }
+
     private static String adminAuthToken;
-    public HttpHeaders getAdminAuthHeader() throws Exception {
+    public HttpHeaders getAdminAuthHeader() {
         final String adminUsername = "admin-user";
         final String adminPassword = "admin-pass";
 
         if (adminAuthToken == null) {
             userRepository.findByUsername(adminUsername).orElseGet(() -> {
-                PasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
                 User admin = new User();
                 admin.setUsername(adminUsername);
                 admin.setPassword(encoder.encode(adminPassword));
@@ -78,13 +87,7 @@ public class ControllerIntegration extends SqlIntegrationTest {
                 return userRepository.save(admin);
             });
 
-            String response = mvc.post().uri("/todo/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper().writeValueAsString(new UserLoginDto(adminUsername, adminPassword)))
-                .exchange()
-                .getResponse()
-                .getContentAsString();
-            adminAuthToken = mapper().readValue(response, LoginResponse.class).token();
+            adminAuthToken = getAuthToken(adminUsername, adminPassword);
         }
 
         HttpHeaders headers = new HttpHeaders();

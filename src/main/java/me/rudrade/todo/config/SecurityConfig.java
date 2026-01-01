@@ -7,6 +7,7 @@ import me.rudrade.todo.model.types.Role;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -54,6 +55,8 @@ public class SecurityConfig {
                     authorizeHttpRequests
 						.requestMatchers("/health/**").permitAll()
                         .requestMatchers("/todo/auth/login").permitAll()
+						.requestMatchers(HttpMethod.POST, "/todo/api/users/register").permitAll()
+						.requestMatchers(HttpMethod.PATCH, "/todo/api/users/{id}").hasAuthority(Role.ROLE_USER.name())
 						.requestMatchers("/todo/api/users/**").hasAuthority(Role.ROLE_ADMIN.name())
                         .requestMatchers("/todo/api/tag/**").hasAuthority(Role.ROLE_USER.name())
 						.requestMatchers("/todo/api/task/**").hasAuthority(Role.ROLE_USER.name());
@@ -74,7 +77,7 @@ public class SecurityConfig {
 	private CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(List.of(corsUrl));
-		configuration.setAllowedMethods(List.of("GET", "POST", "DELETE"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "DELETE", "PATCH"));
 		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 		
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

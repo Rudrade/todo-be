@@ -6,7 +6,7 @@ import me.rudrade.todo.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
@@ -42,6 +43,7 @@ public abstract class SqlIntegrationTest {
     }
 
     @Autowired private UserRepository userRepository;
+    @Autowired public PasswordEncoder encoder;
 
     public User getTestUser() {
         Optional<User> user = userRepository.findByUsername(TEST_USERNAME);
@@ -53,13 +55,13 @@ public abstract class SqlIntegrationTest {
             userTmp.setActive(true);
             userTmp.setEmail(TEST_EMAIL);
             userTmp.setUsername(TEST_USERNAME);
-            userTmp.setPassword(PasswordEncoderFactories.createDelegatingPasswordEncoder().encode(TEST_PASSWORD));
+            userTmp.setPassword(encoder.encode(TEST_PASSWORD));
             userTmp.setRole(Role.ROLE_USER);
 
             userRepository.save(userTmp);
             user = userRepository.findByUsername(TEST_USERNAME);
         } else if (user.get().getPassword().isBlank() || user.get().getPassword().equals("change")) {
-            user.get().setPassword(PasswordEncoderFactories.createDelegatingPasswordEncoder().encode(TEST_PASSWORD));
+            user.get().setPassword(encoder.encode(TEST_PASSWORD));
             userRepository.save(user.get());
         }
 
@@ -68,6 +70,15 @@ public abstract class SqlIntegrationTest {
 
     public boolean sameUser(User a, User b) {
         return a != null && b != null && a.getId() != null && a.getId().equals(b.getId());
+    }
+
+    public User createUser() {
+        var user = new User();
+        user.setUsername(UUID.randomUUID().toString());
+        user.setPassword(encoder.encode("test"));
+        user.setEmail(user.getUsername()+"@t");
+        user.setRole(Role.ROLE_USER);
+        return user;
     }
 
 }

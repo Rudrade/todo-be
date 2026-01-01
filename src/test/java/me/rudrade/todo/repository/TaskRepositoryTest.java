@@ -2,6 +2,7 @@ package me.rudrade.todo.repository;
 
 import static org.assertj.core.api.Assertions.*;
 
+import me.rudrade.todo.config.ConfigurationUtil;
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.model.Task;
 import me.rudrade.todo.model.User;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.jdbc.Sql;
@@ -21,6 +23,7 @@ import java.util.List;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
 @Sql("/sql-scripts/INIT_TASKS.sql")
+@Import(ConfigurationUtil.class)
 class TaskRepositoryTest extends SqlIntegrationTest  {
 
     @Autowired private TaskRepository repository;

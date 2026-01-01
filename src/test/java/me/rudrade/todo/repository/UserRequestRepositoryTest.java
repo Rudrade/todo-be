@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 
 import java.time.LocalDateTime;
 
+import me.rudrade.todo.config.ConfigurationUtil;
 import me.rudrade.todo.config.SqlIntegrationTest;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
@@ -13,9 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Service;
 
 @DataJpaTest(includeFilters = @ComponentScan.Filter(type = FilterType.ANNOTATION, classes = Service.class))
+@Import(ConfigurationUtil.class)
 class UserRequestRepositoryTest extends SqlIntegrationTest {
 
     @Autowired private UserRequestRepository repository;

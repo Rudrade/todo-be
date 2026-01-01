@@ -5,10 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.List;
+import java.util.stream.Stream;
 
+import jakarta.validation.Validation;
+import jakarta.validation.executable.ExecutableValidator;
+import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserRequestDto;
 import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.exception.EntityAlreadyExistsException;
@@ -21,8 +25,12 @@ import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -33,7 +41,7 @@ class UserServiceTest {
     private UserService userService;
     private UserService service() {
         if (userService == null) {
-            userService = new UserService(userRepository, userRequestRepository);
+            userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder());
         }
         return userService;
     }
@@ -49,21 +57,14 @@ class UserServiceTest {
     }
 
     @Test
-    void itShouldThrowWhenCreatedByIsNotAdmin() {
-        User createdBy = new User();
-        createdBy.setRole(Role.ROLE_USER);
-
-        assertThrows(InvalidAccessException.class, () -> service().createUser(validDto(), createdBy));
-
-        verifyNoInteractions(userRepository, userRequestRepository);
-    }
-
-    @Test
     void itShouldThrowWhenActiveUserAlreadyExists() {
-        when(userRepository.findActiveByUsernameOrEmail("new-user", "new-user@mail.com"))
-            .thenReturn(Optional.of(new User()));
+        var user = new User();
+        user.setId(UUID.randomUUID());
 
-        assertThrows(EntityAlreadyExistsException.class, () -> service().createUser(validDto(), adminUser()));
+        when(userRepository.findActiveByUsernameOrEmail("new-user", "new-user@mail.com"))
+            .thenReturn(List.of(user));
+
+        assertThrows(EntityAlreadyExistsException.class, () -> service().createUser(validDto()));
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verifyNoInteractions(userRequestRepository);
@@ -72,11 +73,11 @@ class UserServiceTest {
     @Test
     void itShouldThrowWhenUserRequestAlreadyExists() {
         when(userRepository.findActiveByUsernameOrEmail("new-user", "new-user@mail.com"))
-            .thenReturn(Optional.empty());
+            .thenReturn(List.of());
         when(userRequestRepository.existsByUsernameOrEmail("new-user", "new-user@mail.com"))
             .thenReturn(true);
 
-        assertThrows(EntityAlreadyExistsException.class, () -> service().createUser(validDto(), adminUser()));
+        assertThrows(EntityAlreadyExistsException.class, () -> service().createUser(validDto()));
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verify(userRequestRepository, times(1)).existsByUsernameOrEmail("new-user", "new-user@mail.com");
@@ -86,13 +87,13 @@ class UserServiceTest {
     @Test
     void itShouldCreateUserRequest() {
         when(userRepository.findActiveByUsernameOrEmail("new-user", "new-user@mail.com"))
-            .thenReturn(Optional.empty());
+            .thenReturn(List.of());
         when(userRequestRepository.existsByUsernameOrEmail("new-user", "new-user@mail.com"))
             .thenReturn(false);
         when(userRequestRepository.save(any(UserRequest.class)))
             .thenAnswer(inv -> inv.getArgument(0));
 
-        UserRequest result = service().createUser(validDto(), adminUser());
+        UserRequest result = service().createUser(validDto());
 
         assertThat(result)
             .isNotNull()
@@ -100,10 +101,12 @@ class UserServiceTest {
                 assertThat(saved.getId()).isNull();
                 assertThat(saved.getUsername()).isEqualTo("new-user");
                 assertThat(saved.getEmail()).isEqualTo("new-user@mail.com");
-                assertThat(saved.getPassword()).isEqualTo("secret");
                 assertThat(saved.getRole()).isEqualTo(Role.ROLE_USER);
                 assertThat(saved.getDtCreated()).isNotNull();
                 assertThat(saved.getDtCreated()).isBeforeOrEqualTo(LocalDateTime.now());
+
+                var matches = new BCryptPasswordEncoder().matches("secret", saved.getPassword());
+                assertThat(matches).isTrue();
             });
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
@@ -152,43 +155,206 @@ class UserServiceTest {
         verifyNoInteractions(userRequestRepository);
     }
 
-    @Test
-    void itShouldThrowWhenDeactivateCalledByNonAdmin() {
-        User requester = new User();
-        requester.setRole(Role.ROLE_USER);
+    // ### updateUser ###
 
-        assertThrows(InvalidAccessException.class, () -> service().deactivateById(UUID.randomUUID(), requester));
+    @Test
+    void itShouldValidateNotNullParamsOnUpdateUser() throws Exception {
+        ExecutableValidator validator = Validation.buildDefaultValidatorFactory()
+            .getValidator()
+            .forExecutables();
+        var method = UserService.class.getMethod("updateUser", UUID.class, UserChangeDto.class, User.class);
+
+        var idViolations = validator.validateParameters(
+            service(),
+            method,
+            new Object[]{null, new UserChangeDto("new-user", null, null, null, null), adminUser()}
+        );
+        var dataViolations = validator.validateParameters(
+            service(),
+            method,
+            new Object[]{UUID.randomUUID(), null, adminUser()}
+        );
+        var requesterViolations = validator.validateParameters(
+            service(),
+            method,
+            new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null), null}
+        );
+
+        assertThat(idViolations).hasSize(1);
+        assertThat(dataViolations).hasSize(1);
+        assertThat(requesterViolations).hasSize(1);
+    }
+
+    @Test
+    void itShouldThrowWhenNoFieldsProvided() {
+        UUID id = UUID.randomUUID();
+
+        assertThrows(
+            InvalidDataException.class,
+            () -> service().updateUser(id, new UserChangeDto(null, null, null, null, null), adminUser())
+        );
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
 
     @Test
-    void itShouldThrowWhenDeactivateUserNotFound() {
+    void itShouldThrowWhenUpdatingNonExistingUser() {
         UUID id = UUID.randomUUID();
+
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(InvalidDataException.class, () -> service().deactivateById(id, adminUser()));
+        assertThrows(
+            InvalidDataException.class,
+            () -> service().updateUser(id, new UserChangeDto("user", null, null, null, null), adminUser())
+        );
 
         verify(userRepository, times(1)).findById(id);
-        verify(userRepository, never()).save(any());
+        verifyNoMoreInteractions(userRepository);
         verifyNoInteractions(userRequestRepository);
     }
 
     @Test
-    void itShouldDeactivateUser() {
+    void itShouldThrowWhenRequesterIsNotAdminNorSelf() {
         UUID id = UUID.randomUUID();
-        User user = new User();
-        user.setId(id);
-        user.setActive(true);
-        when(userRepository.findById(id)).thenReturn(Optional.of(user));
+        User stored = new User();
+        stored.setId(id);
 
-        service().deactivateById(id, adminUser());
+        when(userRepository.findById(id)).thenReturn(Optional.of(stored));
 
-        assertThat(user.isActive()).isFalse();
+        User requester = new User();
+        requester.setId(UUID.randomUUID());
+        requester.setRole(Role.ROLE_USER);
+
+        assertThrows(
+            InvalidAccessException.class,
+            () -> service().updateUser(id, new UserChangeDto("new-user", null, null, null, null), requester)
+        );
+
         verify(userRepository, times(1)).findById(id);
-        verify(userRepository, times(1)).save(user);
+        verifyNoMoreInteractions(userRepository);
         verifyNoInteractions(userRequestRepository);
     }
+
+    @Test
+    void itShouldThrowWhenUsernameOrEmailAlreadyExists() {
+        UUID id = UUID.randomUUID();
+        User stored = new User();
+        stored.setId(id);
+
+        var user = new User();
+        user.setId(UUID.randomUUID());
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(stored));
+        when(userRepository.findActiveByUsernameOrEmail("new-user", "new@mail.com"))
+            .thenReturn(List.of(user));
+
+        assertThrows(
+            EntityAlreadyExistsException.class,
+            () -> service().updateUser(
+                id,
+                new UserChangeDto("new-user", null, "new@mail.com", null, null),
+                adminUser()
+            )
+        );
+        
+        verify(userRepository, times(1)).findById(id);
+        verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new@mail.com");
+        verifyNoMoreInteractions(userRepository);
+        verifyNoInteractions(userRequestRepository);
+    }
+    
+    @Test
+    void itShouldThrowWhenUpdateUserIsRoleUserUpdatingRole() {
+        var user = new User();
+        user.setRole(Role.ROLE_USER);
+
+        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null), user));
+
+        verifyNoInteractions(userRepository, userRequestRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenUpdateUserIsRoleUserUpdatingStatus() {
+        var user = new User();
+        user.setRole(Role.ROLE_USER);
+
+        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, null, Boolean.FALSE), user));
+
+        verifyNoInteractions(userRepository, userRequestRepository);
+    }
+
+    @ParameterizedTest
+    @MethodSource("itShouldUpdateUserInputs")
+    void itShouldUpdateUser(UUID id, UserChangeDto data, User requester, String[] fieldsUpdated) {
+        User stored = new User();
+        stored.setId(id);
+        stored.setUsername("current");
+        stored.setEmail("current@mail.com");
+        stored.setActive(true);
+        stored.setPassword("old-password");
+        stored.setRole(Role.ROLE_USER);
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(stored));
+        when(userRepository.findActiveByUsernameOrEmail(data.username(), data.email())).thenReturn(List.of());
+        when(userRequestRepository.existsByUsernameOrEmail(data.username(), data.email())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var result = service().updateUser(
+            id,
+            data,
+            requester
+        );
+
+        if (data.password() != null) {
+            assertThat(result.getPassword()).isNotEqualTo(data.password());
+            assertThat(new BCryptPasswordEncoder().matches(data.password(), result.getPassword())).isTrue();
+        }
+
+        assertThat(result)
+            .usingRecursiveComparison()
+            .ignoringFields(fieldsUpdated)
+            .isEqualTo(stored);
+
+        var dataUser = new User();
+		dataUser.setUsername(data.username());
+		dataUser.setPassword(data.password());
+		dataUser.setEmail(data.email());
+		dataUser.setRole(data.role());
+		dataUser.setActive(Boolean.TRUE.equals(data.active()));
+        dataUser.setId(id);
+
+        assertThat(result)
+            .usingRecursiveComparison()
+            .ignoringFields("password")
+            .comparingOnlyFields(fieldsUpdated)
+            .isEqualTo(dataUser);
+
+        verify(userRepository, times(1)).findById(id);
+        verify(userRepository, times(1)).findActiveByUsernameOrEmail(data.username(), data.email());
+        verify(userRequestRepository, times(1)).existsByUsernameOrEmail(data.username(), data.email());
+        verify(userRepository, times(1)).save(stored);
+        verifyNoMoreInteractions(userRepository, userRequestRepository);
+    }
+
+    private static Stream<Arguments> itShouldUpdateUserInputs() {
+        var id = UUID.randomUUID();
+        var user = new User();
+        user.setId(id);
+        user.setRole(Role.ROLE_USER);
+
+        return Stream.of(
+            Arguments.of(id, new UserChangeDto("new-username", null, null, null, null), adminUser(), new String[]{"username"}),
+            Arguments.of(id, new UserChangeDto(null, "new-password", null, null, null), adminUser(), new String[]{"password"}),
+            Arguments.of(id, new UserChangeDto(null, null, "new-mail@mail.com", null, null), adminUser(), new String[]{"email"}),
+            Arguments.of(id, new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null), adminUser(), new String[]{"role"}),
+            Arguments.of(id, new UserChangeDto(null, null, null, null, Boolean.FALSE), adminUser(), new String[]{"active"}),
+            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", Role.ROLE_ADMIN, Boolean.FALSE), adminUser(), new String[]{"username","password","email","role","active"}),
+            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", null, null), user, new String[]{"username","password","email"})
+        );
+    }
+
+
+    // ### end updateUser ###
 
     @Test
     void itShouldThrowWhenGetAllUsersCalledByNonAdmin() {

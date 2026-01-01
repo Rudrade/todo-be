@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.UUID;
 
 import me.rudrade.todo.config.ControllerIntegration;
+import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.dto.UserRequestDto;
 import me.rudrade.todo.dto.response.UsersResponse;
@@ -17,31 +18,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
 class UserControllerTest extends ControllerIntegration {
 
-    private static final String URI_CREATE_USER = "/todo/api/users";
+    private static final String URI_CREATE_USER = "/todo/api/users/register";
     private static final String URI_GET_USER = "/todo/api/users/{id}";
-    private static final String URI_DELETE_USER = "/todo/api/users/{id}";
+    private static final String URI_UPDATE_USER = "/todo/api/users/{id}";
     private static final String URI_GET_USERS = "/todo/api/users";
 
     @Autowired private MockMvcTester mvc;
     @Autowired private UserRequestRepository userRequestRepository;
     @Autowired private UserRepository userRepository;
-
-    @Test
-    void itShouldReturnForbiddenWhenUserIsNotAdmin() throws Exception {
-        UserRequestDto request = new UserRequestDto("candidate", "secret", "candidate@mail.com", Role.ROLE_USER);
-
-        assertThat(mvc.post().uri(URI_CREATE_USER)
-            .contentType(MediaType.APPLICATION_JSON)
-            .headers(getAuthHeader())
-            .content(mapper().writeValueAsString(request))
-        ).hasStatus(HttpStatus.FORBIDDEN);
-    }
 
     @Test
     void itShouldCreateUserRequestWhenAdmin() throws Exception {
@@ -96,45 +87,69 @@ class UserControllerTest extends ControllerIntegration {
     }
 
     @Test
-    void itShouldDeactivateUserWhenAdmin() throws Exception {
-        User user = new User();
-        user.setUsername("delete-user-" + UUID.randomUUID());
-        user.setPassword("pass");
-        user.setEmail("delete-user-" + UUID.randomUUID() + "@mail.com");
+    void itShouldUpdateUserWhenAdmin() throws Exception {
+        var user = new User();
+        user.setUsername("test-"+UUID.randomUUID());
+        user.setPassword("test-password");
+        user.setEmail(UUID.randomUUID()+"@mail.com");
         user.setRole(Role.ROLE_USER);
         user.setActive(true);
-        user = userRepository.save(user);
+        userRepository.save(user);
 
-        assertThat(mvc.delete().uri(URI_DELETE_USER, user.getId())
-            .headers(getAdminAuthHeader())
-        ).hasStatusOk();
+        var updatedUser = new UserChangeDto(
+            "changed-"+UUID.randomUUID(),
+            "changed-password",
+            UUID.randomUUID()+"@mail.com",
+            Role.ROLE_ADMIN,
+            Boolean.FALSE);
 
-        assertThat(userRepository.findById(user.getId()))
-            .isPresent()
-            .get()
-            .satisfies(deactivated -> assertThat(deactivated.isActive()).isFalse());
+        assertThat(
+            mvc.patch().uri(URI_UPDATE_USER, user.getId())
+                .headers(getAdminAuthHeader())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper().writeValueAsString(updatedUser))
+        ).hasStatusOk()
+        .bodyJson()
+        .convertTo(UserDto.class)
+        .satisfies(dto -> {
+            assertThat(dto.username()).isEqualTo(updatedUser.username());
+            assertThat(dto.email()).isEqualTo(updatedUser.email());
+            assertThat(dto.role()).isEqualTo(updatedUser.role());
+            assertThat(dto.active()).isEqualTo(updatedUser.active());
+        });
     }
 
     @Test
-    void itShouldReturnForbiddenWhenDeactivateAsUser() throws Exception {
-        User user = new User();
-        user.setUsername("delete-user2-" + UUID.randomUUID());
-        user.setPassword("pass");
-        user.setEmail("delete-user2-" + UUID.randomUUID() + "@mail.com");
+    void itShouldUpdateUserWhenIsOwnUser() throws Exception {
+        var user = new User();
+        user.setUsername("test-"+UUID.randomUUID());
+        user.setPassword(encoder.encode("test-password"));
+        user.setEmail(UUID.randomUUID()+"@mail.com");
         user.setRole(Role.ROLE_USER);
         user.setActive(true);
-        user = userRepository.save(user);
+        userRepository.save(user);
 
-        assertThat(mvc.delete().uri(URI_DELETE_USER, user.getId())
-            .headers(getAuthHeader())
-        ).hasStatus(HttpStatus.FORBIDDEN);
-    }
+        var updatedUser = new UserChangeDto(
+            "changed-"+UUID.randomUUID(),
+            "changed-password",
+            UUID.randomUUID()+"@mail.com",
+            null,
+            null);
 
-    @Test
-    void itShouldReturnBadRequestWhenDeactivateUserNotFound() throws Exception {
-        assertThat(mvc.delete().uri(URI_DELETE_USER, UUID.randomUUID())
-            .headers(getAdminAuthHeader())
-        ).hasStatus(HttpStatus.BAD_REQUEST);
+        assertThat(
+            mvc.patch().uri(URI_UPDATE_USER, user.getId())
+                .headers(getAuthHeader(user.getUsername(), "test-password"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper().writeValueAsString(updatedUser))
+        ).hasStatusOk()
+        .bodyJson()
+        .convertTo(UserDto.class)
+        .satisfies(dto -> {
+            assertThat(dto.username()).isEqualTo(updatedUser.username());
+            assertThat(dto.email()).isEqualTo(updatedUser.email());
+            assertThat(dto.role()).isEqualTo(user.getRole());
+            assertThat(dto.active()).isEqualTo(user.isActive());
+        });
     }
 
     @Test
@@ -166,6 +181,64 @@ class UserControllerTest extends ControllerIntegration {
 
         assertThat(list.stream().anyMatch(dto -> dto.username().equals(activeUser.getUsername()))).isTrue();
         assertThat(list.stream().anyMatch(dto -> dto.username().equals(inactiveUser.getUsername()))).isTrue();
+    }
+
+    @Test
+    void itShouldSaveUserWithoutChangingValues() throws Exception {
+        var user = new User();
+        user.setActive(true);
+        user.setUsername(UUID.randomUUID().toString());
+        user.setEmail(user.getUsername()+"@t.com");
+        user.setPassword(encoder.encode("test"));
+        user.setRole(Role.ROLE_USER);
+        userRepository.save(user);
+
+        var updateData = new UserChangeDto(
+            user.getUsername(),
+            "test",
+            user.getEmail(),
+            user.getRole(),
+            user.isActive()
+        );
+
+        assertThat(
+            mvc.patch().uri(URI_UPDATE_USER, user.getId())
+                .headers(getAdminAuthHeader())
+                .content(mapper().writeValueAsString(updateData))
+                .contentType(MediaType.APPLICATION_JSON)
+        ).hasStatusOk();
+
+        var savedUser = userRepository.findById(user.getId());
+        assertThat(savedUser).isNotEmpty();
+        assertThat(savedUser.get())
+            .usingRecursiveComparison()
+            .comparingOnlyFields("id", "username", "email", "role", "active")
+            .isEqualTo(user);
+
+        var matches = new BCryptPasswordEncoder().matches("test", savedUser.get().getPassword());
+        assertThat(matches).isTrue();
+    }
+
+    @Test
+    void itShouldThrowErrorWhenUserTryingToUpdateAnother() throws Exception {
+        var user = createUser();
+        userRepository.save(user);
+
+        var updateData = new UserChangeDto(
+            null,
+            "test-2",
+            null,
+            null,
+            null
+        );
+
+        assertThat(
+            mvc.patch().uri(URI_UPDATE_USER, user.getId())
+            .headers(getAuthHeader())
+            .content(mapper().writeValueAsString(updateData))
+            .contentType(MediaType.APPLICATION_JSON)
+        ).hasStatus(HttpStatus.FORBIDDEN);
+        
     }
 
     @Test

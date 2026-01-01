@@ -2,10 +2,11 @@ package me.rudrade.todo.service;
 
 import me.rudrade.todo.dto.response.LoginResponse;
 import me.rudrade.todo.exception.InvalidAccessException;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import lombok.AllArgsConstructor;
 import me.rudrade.todo.dto.UserLoginDto;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.UserRepository;
@@ -13,18 +14,12 @@ import me.rudrade.todo.repository.UserRepository;
 import java.util.Optional;
 
 @Service
+@AllArgsConstructor
 public class AuthenticationService {
 
 	private final UserRepository userRepository;
 	private final JwtService jwtService;
 	private final PasswordEncoder passwordEncoder;
-
-	public AuthenticationService(UserRepository userRepository, JwtService jwtService) {
-		this.userRepository = userRepository;
-		this.jwtService = jwtService;
-
-		this.passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
-	}
 
 	public LoginResponse authenticate(UserLoginDto user) {
 		if (user == null ||

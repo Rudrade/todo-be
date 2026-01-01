@@ -11,7 +11,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -28,11 +28,12 @@ class AuthenticationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private JwtService jwtService;
 
+    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     private AuthenticationService authenticationService;
 
     @Test
     void itShouldAuthenticateSuccessfully() {
-        PasswordEncoder passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
         String rawPassword = "password";
 
         User user = new User();
@@ -81,7 +82,6 @@ class AuthenticationServiceTest {
 
     @Test
     void itShouldThrowWhenPasswordDoesNotMatch() {
-        PasswordEncoder passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
         AuthenticationService service = getAuthenticationService();
 
         User user = new User();
@@ -178,7 +178,6 @@ class AuthenticationServiceTest {
 
     @Test
     void itShouldThrowWhenUserInactiveOnAuthenticate() {
-        PasswordEncoder passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
         AuthenticationService service = getAuthenticationService();
 
         User user = new User();
@@ -210,7 +209,7 @@ class AuthenticationServiceTest {
 
     private AuthenticationService getAuthenticationService() {
         if (authenticationService == null) {
-            authenticationService = new AuthenticationService(userRepository, jwtService);
+            authenticationService = new AuthenticationService(userRepository, jwtService, passwordEncoder);
         }
         return authenticationService;
     }
