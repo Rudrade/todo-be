@@ -5,9 +5,6 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.mail.MessagingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -34,8 +31,6 @@ import me.rudrade.todo.util.ServiceUtil;
 @AllArgsConstructor
 public class UserService extends ServiceUtil {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-
     private final UserRepository userRepository;
     private final UserRequestRepository userRequestRepository;
     private final PasswordEncoder passwordEncoder;
@@ -52,16 +47,7 @@ public class UserService extends ServiceUtil {
         
         userRequestRepository.save(user);
 
-        // Send activation mail and mark mail as sent
-        try {
-            mailService.sendActivationMail(user);
-
-            user.setMailSent(true);
-            userRequestRepository.save(user);
-
-        } catch (MessagingException e) {
-            logger.error("Error sending mail", e);
-        }
+        mailService.sendActivationMail(user);
 
         return user;
     }

@@ -113,8 +113,9 @@ class UserServiceTest {
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verify(userRequestRepository, times(1)).existsByUsernameOrEmail("new-user", "new-user@mail.com");
-        verify(userRequestRepository, times(2)).save(any(UserRequest.class));
-        verifyNoMoreInteractions(userRepository, userRequestRepository);
+        verify(userRequestRepository, times(1)).save(any(UserRequest.class));
+        verify(mailService, times(1)).sendActivationMail(any(UserRequest.class));
+        verifyNoMoreInteractions(userRepository, userRequestRepository, mailService);
     }
 
     @Test
