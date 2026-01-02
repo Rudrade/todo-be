@@ -75,5 +75,30 @@ class UserRequestRepositoryTest extends SqlIntegrationTest {
         var dbRequest = repository.findById(userRequest.getId());
         assertThat(dbRequest).isNotPresent();
     }
+
+    @Test
+    void itShouldFindAllByMailSentIsFalse() {
+        var userRequest1 = new UserRequest();
+        userRequest1.setDtCreated(LocalDateTime.now());
+        userRequest1.setRole(Role.ROLE_USER);
+        userRequest1.setPassword("test");
+        userRequest1.setUsername("user-mail-1");
+        userRequest1.setEmail("user-mail-1@test.com");
+        repository.save(userRequest1);
+
+        var userRequest2 = new UserRequest();
+        userRequest2.setDtCreated(LocalDateTime.now());
+        userRequest2.setRole(Role.ROLE_USER);
+        userRequest2.setPassword("test");
+        userRequest2.setUsername("user-mail-2");
+        userRequest2.setEmail("user-mail-2@test.com");
+        repository.save(userRequest2);
+
+        var result = repository.findAllByMailSentIsFalse();
+        assertThat(result)
+            .hasSize(2)
+            .usingRecursiveFieldByFieldElementComparator()
+            .containsExactlyInAnyOrder(userRequest1, userRequest2);
+    }
 }
 
