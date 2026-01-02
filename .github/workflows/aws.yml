@@ -2,7 +2,8 @@ name: Deploy to AWS
 
 on:
   push:
-    branches: [ "main" ]
+    tags: 
+      - '*'
     
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}                   # set this to your preferred AWS region, e.g. us-west-1
@@ -39,6 +40,17 @@ jobs:
     needs: [build]
 
     steps:
+      - name: Get release version
+        id: release-version
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+
+      - name: Check release version
+        env:
+          RELEASE_VERSION: ${{ steps.release-version.outputs.tag }}
+        run: |
+          echo $RELEASE_VERSION
+          echo $ {{ steps.release-version.outputs.tag }}
+    
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -59,14 +71,14 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          RELEASE_VERSION: ${{ steps.release-version.outputs.tag }}
         run: |
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$RELEASE_VERSION .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$RELEASE_VERSION
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$RELEASE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Download task definition
         run: |
