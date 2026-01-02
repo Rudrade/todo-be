@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,8 +18,7 @@ import jakarta.validation.ConstraintViolationException;
 
 @ControllerAdvice
 public class ExceptionHandler {
-
-    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ExceptionHandler.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandler.class);
 
 	@org.springframework.web.bind.annotation.ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<Error> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
@@ -54,7 +54,7 @@ public class ExceptionHandler {
 	}
 
 	@org.springframework.web.bind.annotation.ExceptionHandler(InvalidDataException.class)
-	public ResponseEntity<Error> handleDataIntegrityViolationException(InvalidDataException ex) {
+	public ResponseEntity<Error> handleInvalidDataException(InvalidDataException ex) {
 		return new ResponseEntity<>(new Error(ex.getMessage(), null), HttpStatus.BAD_REQUEST);
 	}
 
@@ -75,7 +75,7 @@ public class ExceptionHandler {
     }
 
 	@org.springframework.web.bind.annotation.ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Error> handleRuntimeException(MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<Error> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
 		return new ResponseEntity<>(new Error("Invalid argument", Set.of(ex.getName())), HttpStatus.BAD_REQUEST); 
     }
 
