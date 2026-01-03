@@ -13,6 +13,7 @@
 	<name>todo</name>
 	<properties>
 		<java.version>21</java.version>
+		<sonar.organization>rudrade</sonar.organization>
 	</properties>
 	<dependencies>
 		<dependency>
