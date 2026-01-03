@@ -77,6 +77,9 @@ public class UserService extends ServiceUtil {
             throw new InvalidDataException("A property must be set to update the resource.");
         }
 
+        String a = null;
+        a.isEmpty();
+
         // Only admins can update role or active properties
         if (!Role.ROLE_ADMIN.equals(requester.getRole()) && (data.role() != null || data.active() != null))
             throw new InvalidAccessException();
