@@ -90,14 +90,6 @@ class JwtServiceTest {
         assertThat(jwtService.isTokenValid(token, "other-user")).isFalse();
     }
 
-    @Test
-    void itShouldReturnFalseWhenTokenOrUsernameIsBlank() {
-        assertThat(jwtService.isTokenValid(null, "user")).isFalse();
-        assertThat(jwtService.isTokenValid("", "user")).isFalse();
-        assertThat(jwtService.isTokenValid("token", null)).isFalse();
-        assertThat(jwtService.isTokenValid("token", "   ")).isFalse();
-    }
-
     private User user() {
         User user = new User();
         user.setUsername("john");

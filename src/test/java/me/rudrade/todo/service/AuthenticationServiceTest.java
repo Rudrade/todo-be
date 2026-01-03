@@ -1,5 +1,7 @@
 package me.rudrade.todo.service;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import me.rudrade.todo.dto.UserLoginDto;
 import me.rudrade.todo.dto.response.LoginResponse;
 import me.rudrade.todo.exception.InvalidAccessException;
@@ -13,7 +15,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Calendar;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -31,6 +35,126 @@ class AuthenticationServiceTest {
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private AuthenticationService authenticationService;
+
+    private static final String JWT_SECRET_KEY = "test123";
+    private static final String JWT_ISSUER = "test-app";
+
+    private Algorithm getAlgorithm() {
+        return Algorithm.HMAC256(JWT_SECRET_KEY);
+    }
+
+    // ### refreshToken ###
+
+    @Test
+    void itShouldRefreshToken() {
+        var issuedAt = Calendar.getInstance();
+        issuedAt.add(Calendar.MINUTE, -10);
+
+        var token = JWT.create()
+            .withIssuer(JWT_ISSUER)
+            .withClaim("username", "test-user")
+            .withClaim("role", "test-role")
+            .withClaim("refreshes", 3)
+            .withIssuedAt(issuedAt.getTime())
+            .withExpiresAt(issuedAt.getTime())
+            .sign(getAlgorithm());
+
+        when(jwtService.extractUsername(token)).thenReturn("test-user");
+        when(jwtService.isTokenValidWithLeeway(token, "test-user")).thenReturn(true);
+        when(jwtService.getTokenRefreshes(token)).thenReturn(4);
+        when(jwtService.generateToken(any(User.class), anyInt())).thenCallRealMethod();
+        when(userRepository.findByUsername("test-user")).thenReturn(Optional.of(new User()));
+
+        var result = getAuthenticationService().refreshToken(token);
+        assertThat(result).isNotBlank();
+
+        var decodedRefreshes = JWT.require(getAlgorithm())
+            .withIssuer(JWT_ISSUER)
+            .build()
+            .verify(result)
+            .getClaim("refreshes").asInt();
+        assertThat(decodedRefreshes).isEqualTo(5);
+
+        verify(jwtService, times(1)).isTokenValidWithLeeway(token, "test-user");
+        verify(jwtService, times(1)).getTokenRefreshes(token);
+        verify(jwtService, times(2)).extractUsername(token);
+        verify(jwtService, times(1)).generateToken(any(User.class), eq(5));
+        verifyNoMoreInteractions(jwtService);
+
+        verify(userRepository, times(1)).findByUsername("test-user");
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenTokenIsInvalid() {
+        when(jwtService.extractUsername("test-token")).thenReturn("test-user");
+        when(jwtService.isTokenValidWithLeeway("test-token", "test-user")).thenReturn(false);
+
+        assertThrows(InvalidAccessException.class, () -> {
+           getAuthenticationService().refreshToken("test-token");
+        });
+
+        verify(jwtService, times(1)).extractUsername("test-token");
+        verify(jwtService, times(1)).isTokenValidWithLeeway("test-token", "test-user");
+        verifyNoMoreInteractions(jwtService);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenNrRefreshesIsInvalid() {
+        var issuedAt = Calendar.getInstance();
+        issuedAt.add(Calendar.MINUTE, -10);
+
+        var token = JWT.create()
+            .withIssuer(JWT_ISSUER)
+            .withClaim("username", "test-user")
+            .withClaim("role", "test-role")
+            .withClaim("refreshes", 5)
+            .withIssuedAt(issuedAt.getTime())
+            .withExpiresAt(issuedAt.getTime())
+            .sign(getAlgorithm());
+
+        when(jwtService.extractUsername(token)).thenReturn("test-user");
+        when(jwtService.isTokenValidWithLeeway(token, "test-user")).thenReturn(true);
+        when(jwtService.getTokenRefreshes(token)).thenReturn(5);
+
+        assertThrows(InvalidAccessException.class, () -> getAuthenticationService().refreshToken(token));
+
+        verify(jwtService, times(1)).extractUsername(token);
+        verify(jwtService, times(1)).isTokenValidWithLeeway(token, "test-user");
+        verify(jwtService, times(1)).getTokenRefreshes(token);
+        verifyNoMoreInteractions(jwtService, userRepository);
+    }
+
+    @Test
+    void itShouldThrowWhenUserIsNotFoundWhenRefreshingToken() {
+        var issuedAt = Calendar.getInstance();
+        issuedAt.add(Calendar.MINUTE, -10);
+
+        var token = JWT.create()
+            .withIssuer(JWT_ISSUER)
+            .withClaim("username", "test-user")
+            .withClaim("role", "test-role")
+            .withClaim("refreshes", 3)
+            .withIssuedAt(issuedAt.getTime())
+            .withExpiresAt(issuedAt.getTime())
+            .sign(getAlgorithm());
+
+        when(jwtService.extractUsername(token)).thenReturn("test-user");
+        when(jwtService.isTokenValidWithLeeway(token, "test-user")).thenReturn(true);
+        when(jwtService.getTokenRefreshes(token)).thenReturn(3);
+        when(userRepository.findByUsername("test-user")).thenReturn(Optional.empty());
+
+        assertThrows(InvalidAccessException.class, () -> getAuthenticationService().refreshToken(token));
+
+        verify(jwtService, times(2)).extractUsername(token);
+        verify(jwtService, times(1)).isTokenValidWithLeeway(token, "test-user");
+        verify(jwtService, times(1)).getTokenRefreshes(token);
+        verify(userRepository, times(1)).findByUsername("test-user");
+        verifyNoMoreInteractions(jwtService, userRepository);
+    }
+
+    // ### end refreshToken ###
 
     @Test
     void itShouldAuthenticateSuccessfully() {
@@ -210,6 +334,10 @@ class AuthenticationServiceTest {
     private AuthenticationService getAuthenticationService() {
         if (authenticationService == null) {
             authenticationService = new AuthenticationService(userRepository, jwtService, passwordEncoder);
+            ReflectionTestUtils.setField(authenticationService, "nrAllowedRefreshes", "5");
+            ReflectionTestUtils.setField(jwtService, "secretKey", "test123");
+            ReflectionTestUtils.setField(jwtService, "jwtExpiration", 6000L);
+            ReflectionTestUtils.setField(jwtService, "issuer", "test-app");
         }
         return authenticationService;
     }
