@@ -55,6 +55,7 @@ public class SecurityConfig {
                     authorizeHttpRequests
 						.requestMatchers("/health/**").permitAll()
                         .requestMatchers("/todo/auth/login").permitAll()
+						.requestMatchers("/todo/auth/refresh").permitAll()
 						.requestMatchers(HttpMethod.POST, "/todo/api/users/register").permitAll()
 						.requestMatchers(HttpMethod.POST, "/todo/api/users/activate/{id}").permitAll()
 						.requestMatchers(HttpMethod.PATCH, "/todo/api/users/{id}").hasAuthority(Role.ROLE_USER.name())
