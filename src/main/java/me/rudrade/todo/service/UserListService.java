@@ -10,6 +10,7 @@ import me.rudrade.todo.repository.UserListRepository;
 import me.rudrade.todo.util.ServiceUtil;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,8 @@ public class UserListService extends ServiceUtil {
         this.userListRepository = userListRepository;
         this.authenticationService = authenticationService;
     }
+
+    @Transactional(readOnly = true)
     public List<UserListDto> getUserListsByToken(String authToken) {
         if (authToken == null || authToken.isBlank())
             throw new InvalidAccessException();
