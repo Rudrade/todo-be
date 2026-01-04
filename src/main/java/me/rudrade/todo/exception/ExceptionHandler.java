@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -19,6 +20,11 @@ import jakarta.validation.ConstraintViolationException;
 @ControllerAdvice
 public class ExceptionHandler {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandler.class);
+
+	@org.springframework.web.bind.annotation.ExceptionHandler(AuthorizationDeniedException.class)
+	public ResponseEntity<Error> handleAuthorizationDeniedException(AuthorizationDeniedException ex) {
+		return handleInvalidAccessException(null);
+	}
 
 	@org.springframework.web.bind.annotation.ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<Error> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
