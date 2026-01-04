@@ -21,6 +21,7 @@ import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.exception.EntityAlreadyExistsException;
 import me.rudrade.todo.exception.InvalidAccessException;
 import me.rudrade.todo.exception.InvalidDataException;
+import me.rudrade.todo.exception.UnexpectedErrorException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
@@ -214,7 +215,7 @@ public class UserService extends ServiceUtil {
 
         boolean result = mailService.sendActivationMail(request.get());
         if (!result) {
-            throw new RuntimeException("An error occured while trying to resend mail.");
+            throw new UnexpectedErrorException("An error occured while trying to resend mail.");
         }
     }
 

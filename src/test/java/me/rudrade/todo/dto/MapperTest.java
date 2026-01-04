@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
 
-public class MapperTest {
+class MapperTest {
 
     @Test
     void itShouldToRequestDto() {
