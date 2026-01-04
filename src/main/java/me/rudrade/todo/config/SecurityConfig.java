@@ -58,6 +58,7 @@ public class SecurityConfig {
 						.requestMatchers("/todo/auth/refresh").permitAll()
 						.requestMatchers(HttpMethod.POST, "/todo/api/users/register").permitAll()
 						.requestMatchers(HttpMethod.POST, "/todo/api/users/activate/{id}").permitAll()
+						.requestMatchers("/todo/api/users/requests/mail/{id}").permitAll()
 						.requestMatchers(HttpMethod.PATCH, "/todo/api/users/{id}").hasAuthority(Role.ROLE_USER.name())
 						.requestMatchers("/todo/api/users/**").hasAuthority(Role.ROLE_ADMIN.name())
                         .requestMatchers("/todo/api/tag/**").hasAuthority(Role.ROLE_USER.name())

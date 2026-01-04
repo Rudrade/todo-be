@@ -64,4 +64,8 @@ public class Mapper {
 		);
 	}
 
+	public static RequestDto toRequestDto(UserRequest request) {
+		return new RequestDto(request.getId(), request.getUsername(), request.getEmail(), request.getDtCreated(), request.isMailSent(), request.getRole());
+	}
+
 }

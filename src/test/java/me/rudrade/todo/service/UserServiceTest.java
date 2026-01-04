@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 
 import jakarta.validation.Validation;
 import jakarta.validation.executable.ExecutableValidator;
+import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserRequestDto;
 import me.rudrade.todo.dto.types.UserSearchType;
@@ -436,6 +437,7 @@ class UserServiceTest {
         verifyNoInteractions(userRepository);
     }
     
+    @SuppressWarnings("null")
     @Test
     void itShouldThrowWhenIdActivateUserIsNull() {
         when(userRequestRepository.findById(null))
@@ -504,5 +506,31 @@ class UserServiceTest {
     }
 
     // ### end activateUser ###
+
+    // ### findAllRequest ###
+
+    @Test
+    void itShouldFindAllRequest() {
+        var request1 = new UserRequest();
+        request1.setId(UUID.randomUUID());
+
+        var request2 = new UserRequest();
+        request2.setId(UUID.randomUUID());
+
+        when(userRequestRepository.findAll()).thenReturn(List.of(request1, request2));
+
+        var result = service().findAllRequest();
+
+        assertThat(result)
+            .hasSize(2)
+            .usingRecursiveFieldByFieldElementComparator()
+            .containsExactlyInAnyOrder(Mapper.toRequestDto(request1), Mapper.toRequestDto(request2));
+
+        verify(userRequestRepository, times(1)).findAll();
+        verifyNoMoreInteractions(userRequestRepository);
+        verifyNoInteractions(userRepository);
+    }
+
+    // ### end findAllRequest ###
 }
 

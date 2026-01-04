@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -12,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import me.rudrade.todo.dto.Mapper;
+import me.rudrade.todo.dto.RequestDto;
 import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.dto.UserRequestDto;
@@ -19,6 +21,7 @@ import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.exception.EntityAlreadyExistsException;
 import me.rudrade.todo.exception.InvalidAccessException;
 import me.rudrade.todo.exception.InvalidDataException;
+import me.rudrade.todo.exception.UnexpectedErrorException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
@@ -195,4 +198,29 @@ public class UserService extends ServiceUtil {
         return Mapper.toUserDto(user);
     }
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public List<RequestDto> findAllRequest() {
+        List<RequestDto> lst = new ArrayList<>();
+        userRequestRepository.findAll()
+            .forEach(request -> lst.add(Mapper.toRequestDto(request)));
+
+        return lst;
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public void resendMail(@NotNull UUID id) {
+        var request = userRequestRepository.findById(id);
+        if (request.isEmpty())
+            throw new InvalidDataException("User request not found");
+
+        boolean result = mailService.sendActivationMail(request.get());
+        if (!result) {
+            throw new UnexpectedErrorException("An error occured while trying to resend mail.");
+        }
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public void deleteUserRequest(@NotNull UUID id) {
+        userRequestRepository.deleteById(id);
+    }
 }

@@ -11,6 +11,7 @@ import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.dto.UserRequestDto;
+import me.rudrade.todo.dto.response.RequestListResponse;
 import me.rudrade.todo.dto.response.UsersResponse;
 import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.service.AuthenticationService;
@@ -67,5 +68,19 @@ public class UserController {
         return userService.activateUser(id);
     }
 
+    @GetMapping("/requests")
+    public RequestListResponse getAllRequests() {
+        return new RequestListResponse(userService.findAllRequest());
+    }
+
+    @PatchMapping("/requests/mail/{id}")
+    public void resendMail(@PathVariable UUID id) {
+        userService.resendMail(id);
+    }
+
+    @DeleteMapping("/requests/{id}")
+    public void deleteRequest(@PathVariable UUID id) {
+        userService.deleteUserRequest(id);
+    }
 
 }

@@ -6,9 +6,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import me.rudrade.todo.config.ControllerIntegration;
+import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.dto.UserRequestDto;
+import me.rudrade.todo.dto.response.RequestListResponse;
 import me.rudrade.todo.dto.response.UsersResponse;
 import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.model.User;
@@ -322,6 +324,40 @@ class UserControllerTest extends ControllerIntegration {
                assertThat(user.getId()).isNotNull().isNotEqualTo(request.getId());
                assertThat(user.isActive()).isTrue();
             });
+    }
+
+    @Test
+    void itShouldGetAllRequests() {
+        userRequestRepository.deleteAll();
+
+        var request1 = new UserRequest();
+        request1.setUsername("test-request-1");
+        request1.setDtCreated(LocalDateTime.now());
+        request1.setEmail(request1.getUsername()+"@test");
+        request1.setPassword("test");
+        request1.setRole(Role.ROLE_ADMIN);
+        userRequestRepository.save(request1);
+
+        var request2 = new UserRequest();
+        request2.setUsername("test-request-2");
+        request2.setDtCreated(LocalDateTime.now().minusDays(5L));
+        request2.setEmail(request2.getUsername()+"@test");
+        request2.setPassword("test");
+        request2.setRole(Role.ROLE_USER);
+        userRequestRepository.save(request2);
+
+        assertThat(mvc.get().uri("/todo/api/users/requests")
+            .headers(getAdminAuthHeader())
+        ).hasStatusOk()
+        .bodyJson()
+        .convertTo(RequestListResponse.class)
+        .satisfies(res -> {
+            assertThat(res.requests())
+                .isNotNull()
+                .hasSize(2)
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields("dtCreated")
+                .containsExactlyInAnyOrder(Mapper.toRequestDto(request1), Mapper.toRequestDto(request2));
+        });
     }
 
 }

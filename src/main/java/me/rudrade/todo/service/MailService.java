@@ -23,7 +23,7 @@ public class MailService {
     @Value("${todo.app.mail.activationUrl}")
     private String activationUrl;
 
-    public void sendActivationMail(UserRequest user) {
+    public boolean sendActivationMail(UserRequest user) {
         if (activationUrl == null || !activationUrl.contains("{id}"))
             throw new IllegalStateException("Activation url is miss configured");
 
@@ -39,8 +39,10 @@ public class MailService {
 
             user.setMailSent(true);
             userRequestRepository.save(user);
+            return true;
         } catch (Exception e) {
             LOGGER.error("[MailService.sendActivationMail] ", e);
+            return false;
         }
     }
 
