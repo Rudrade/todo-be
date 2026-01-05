@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.NativeQuery;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +19,9 @@ public interface UserRequestRepository extends CrudRepository<UserRequest, UUID>
     @NativeQuery("delete from user_request ur where timestampdiff(minute, ur.dt_created, current_timestamp) >= ?1")
     void deleteIfExpired(int minutes);
 
-    @Query
     List<UserRequest> findAllByMailSentIsFalse();
+
+    List<UserRequest> findAllByUsernameContainingIgnoringCase(String username);
+
+    List<UserRequest> findAllByEmailContainingIgnoringCase(String email);
 }

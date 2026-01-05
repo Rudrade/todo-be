@@ -69,8 +69,10 @@ public class UserController {
     }
 
     @GetMapping("/requests")
-    public RequestListResponse getAllRequests() {
-        return new RequestListResponse(userService.findAllRequest());
+    public RequestListResponse getAllRequests(
+        @RequestParam(required = false) String filterType,
+        @RequestParam(required = false) String filterValue) {
+        return new RequestListResponse(userService.findAllRequest(filterType, filterValue));
     }
 
     @PatchMapping("/requests/mail/{id}")

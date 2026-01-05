@@ -199,11 +199,20 @@ public class UserService extends ServiceUtil {
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public List<RequestDto> findAllRequest() {
-        List<RequestDto> lst = new ArrayList<>();
-        userRequestRepository.findAll()
-            .forEach(request -> lst.add(Mapper.toRequestDto(request)));
+    public List<RequestDto> findAllRequest(String filterType, String filterValue) {
+        Iterable<UserRequest> iterable;
+        if ("EMAIL".equals(filterType)) {
+            iterable = userRequestRepository.findAllByEmailContainingIgnoringCase(filterValue);
 
+        } else if ("USERNAME".equals(filterType)) {
+            iterable = userRequestRepository.findAllByUsernameContainingIgnoringCase(filterValue);
+
+        } else {
+            iterable = userRequestRepository.findAll();
+        }
+
+        List<RequestDto> lst = new ArrayList<>();
+        iterable.forEach(request -> lst.add(Mapper.toRequestDto(request)));
         return lst;
     }
 
