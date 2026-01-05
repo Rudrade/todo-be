@@ -519,7 +519,7 @@ class UserServiceTest {
 
         when(userRequestRepository.findAll()).thenReturn(List.of(request1, request2));
 
-        var result = service().findAllRequest();
+        var result = service().findAllRequest(null, null);
 
         assertThat(result)
             .hasSize(2)
@@ -527,6 +527,56 @@ class UserServiceTest {
             .containsExactlyInAnyOrder(Mapper.toRequestDto(request1), Mapper.toRequestDto(request2));
 
         verify(userRequestRepository, times(1)).findAll();
+        verifyNoMoreInteractions(userRequestRepository);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void itShouldFindRequestByEmail() {
+        var request1 = new UserRequest();
+        request1.setId(UUID.randomUUID());
+        request1.setEmail("test@test");
+
+        var request2 = new UserRequest();
+        request2.setId(UUID.randomUUID());
+        request2.setEmail("test2@test");
+
+        when(userRequestRepository.findAllByEmailContainingIgnoringCase("test")).thenReturn(List.of(request1, request2));
+
+        var result = service().findAllRequest("EMAIL", "test");
+
+        assertThat(result)
+            .hasSize(2)
+            .usingRecursiveFieldByFieldElementComparator()
+            .containsExactlyInAnyOrder(Mapper.toRequestDto(request1), Mapper.toRequestDto(request2))
+            .allMatch(usr -> usr.email() != null && usr.email().toLowerCase().contains("test"));
+
+        verify(userRequestRepository, times(1)).findAllByEmailContainingIgnoringCase("test");
+        verifyNoMoreInteractions(userRequestRepository);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void itShouldFindRequestByUsername() {
+        var request1 = new UserRequest();
+        request1.setId(UUID.randomUUID());
+        request1.setUsername("test");
+
+        var request2 = new UserRequest();
+        request2.setId(UUID.randomUUID());
+        request2.setUsername("test2");
+
+        when(userRequestRepository.findAllByUsernameContainingIgnoringCase("test")).thenReturn(List.of(request1, request2));
+
+        var result = service().findAllRequest("USERNAME", "test");
+
+        assertThat(result)
+            .hasSize(2)
+            .usingRecursiveFieldByFieldElementComparator()
+            .containsExactlyInAnyOrder(Mapper.toRequestDto(request1), Mapper.toRequestDto(request2))
+            .allMatch(usr -> usr.username() != null && usr.username().toLowerCase().contains("test"));
+
+        verify(userRequestRepository, times(1)).findAllByUsernameContainingIgnoringCase("test");
         verifyNoMoreInteractions(userRequestRepository);
         verifyNoInteractions(userRepository);
     }

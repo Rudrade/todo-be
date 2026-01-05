@@ -100,5 +100,71 @@ class UserRequestRepositoryTest extends SqlIntegrationTest {
             .usingRecursiveFieldByFieldElementComparator()
             .containsExactlyInAnyOrder(userRequest1, userRequest2);
     }
+
+    @Test
+    void itShouldFindRequestByUsername() {
+        var userRequest1 = new UserRequest();
+        userRequest1.setDtCreated(LocalDateTime.now());
+        userRequest1.setRole(Role.ROLE_USER);
+        userRequest1.setPassword("test");
+        userRequest1.setUsername("user-abc-3");
+        userRequest1.setEmail("user-mail-3@test.com");
+        repository.save(userRequest1);
+
+        var userRequest2 = new UserRequest();
+        userRequest2.setDtCreated(LocalDateTime.now());
+        userRequest2.setRole(Role.ROLE_USER);
+        userRequest2.setPassword("test");
+        userRequest2.setUsername("User-ABC-4");
+        userRequest2.setEmail("user-mail-4@test.com");
+        repository.save(userRequest2);
+
+        var userRequest3 = new UserRequest();
+        userRequest3.setDtCreated(LocalDateTime.now());
+        userRequest3.setRole(Role.ROLE_USER);
+        userRequest3.setPassword("test");
+        userRequest3.setUsername("user-other-5");
+        userRequest3.setEmail("user-mail-5@test.com");
+        repository.save(userRequest3);
+
+        var result = repository.findAllByUsernameContainingIgnoringCase("abc");
+        assertThat(result)
+            .hasSize(2)
+            .usingRecursiveFieldByFieldElementComparator()
+            .containsExactlyInAnyOrder(userRequest1, userRequest2);
+    }
+
+    @Test
+    void itShouldFindRequestByEmail() {
+        var userRequest1 = new UserRequest();
+        userRequest1.setDtCreated(LocalDateTime.now());
+        userRequest1.setRole(Role.ROLE_USER);
+        userRequest1.setPassword("test");
+        userRequest1.setUsername("user-email-1");
+        userRequest1.setEmail("person@example.com");
+        repository.save(userRequest1);
+
+        var userRequest2 = new UserRequest();
+        userRequest2.setDtCreated(LocalDateTime.now());
+        userRequest2.setRole(Role.ROLE_USER);
+        userRequest2.setPassword("test");
+        userRequest2.setUsername("user-email-2");
+        userRequest2.setEmail("another@Example.com");
+        repository.save(userRequest2);
+
+        var userRequest3 = new UserRequest();
+        userRequest3.setDtCreated(LocalDateTime.now());
+        userRequest3.setRole(Role.ROLE_USER);
+        userRequest3.setPassword("test");
+        userRequest3.setUsername("user-email-3");
+        userRequest3.setEmail("nomatch@test.org");
+        repository.save(userRequest3);
+
+        var result = repository.findAllByEmailContainingIgnoringCase("example.com");
+        assertThat(result)
+            .hasSize(2)
+            .usingRecursiveFieldByFieldElementComparator()
+            .containsExactlyInAnyOrder(userRequest1, userRequest2);
+    }
 }
 
