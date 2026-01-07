@@ -16,7 +16,7 @@ public class SendMissingConfirmationMailsJob {
     private final UserRequestRepository userRequestRepository;
     private final MailService mailService;
 
-    @Scheduled(cron = "0 */5 * * * *")
+    //@Scheduled(cron = "0 */5 * * * *")
     void job () {
         LOGGER.info("[SendMissingConfirmationMailsJob] Starting Job");
 
