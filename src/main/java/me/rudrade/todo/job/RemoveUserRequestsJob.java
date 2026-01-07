@@ -17,7 +17,7 @@ public class RemoveUserRequestsJob {
 
     private final UserRequestRepository userRequestRepository;
 
-    @Scheduled(cron = "0 0 8-20 ? * MON-FRI")
+    //@Scheduled(cron = "0 0 8-20 ? * MON-FRI")
     @Transactional
     void job() {
         LOGGER.info("[RemoveUserRequestsJob] Starting Job");
