@@ -106,7 +106,8 @@ class UserControllerTest extends ControllerIntegration {
             "changed-password",
             UUID.randomUUID()+"@mail.com",
             Role.ROLE_ADMIN,
-            Boolean.FALSE);
+            Boolean.FALSE,
+        null);
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
@@ -117,10 +118,10 @@ class UserControllerTest extends ControllerIntegration {
         .bodyJson()
         .convertTo(UserDto.class)
         .satisfies(dto -> {
-            assertThat(dto.username()).isEqualTo(updatedUser.username());
-            assertThat(dto.email()).isEqualTo(updatedUser.email());
-            assertThat(dto.role()).isEqualTo(updatedUser.role());
-            assertThat(dto.active()).isEqualTo(updatedUser.active());
+            assertThat(dto.username()).isEqualTo(updatedUser.getUsername());
+            assertThat(dto.email()).isEqualTo(updatedUser.getEmail());
+            assertThat(dto.role()).isEqualTo(updatedUser.getRole());
+            assertThat(dto.active()).isEqualTo(updatedUser.getActive());
         });
     }
 
@@ -139,7 +140,8 @@ class UserControllerTest extends ControllerIntegration {
             "changed-password",
             UUID.randomUUID()+"@mail.com",
             null,
-            null);
+            null,
+        null);
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
@@ -150,8 +152,8 @@ class UserControllerTest extends ControllerIntegration {
         .bodyJson()
         .convertTo(UserDto.class)
         .satisfies(dto -> {
-            assertThat(dto.username()).isEqualTo(updatedUser.username());
-            assertThat(dto.email()).isEqualTo(updatedUser.email());
+            assertThat(dto.username()).isEqualTo(updatedUser.getUsername());
+            assertThat(dto.email()).isEqualTo(updatedUser.getEmail());
             assertThat(dto.role()).isEqualTo(user.getRole());
             assertThat(dto.active()).isEqualTo(user.isActive());
         });
@@ -203,7 +205,8 @@ class UserControllerTest extends ControllerIntegration {
             "test",
             user.getEmail(),
             user.getRole(),
-            user.isActive()
+            user.isActive(),
+            null
         );
 
         assertThat(
@@ -232,6 +235,7 @@ class UserControllerTest extends ControllerIntegration {
         var updateData = new UserChangeDto(
             null,
             "test-2",
+            null,
             null,
             null,
             null

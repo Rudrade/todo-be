@@ -23,13 +23,13 @@ public class Mapper {
 	
 	public static Task toTask(TaskDto dto) {
 		return new Task(
-				dto.id(),
-				dto.title(),
-				dto.description(),
-				dto.dueDate(),
+				dto.getId(),
+				dto.getTitle(),
+				dto.getDescription(),
+				dto.getDueDate(),
 				null,
-				dto.listName() == null ? null : new UserList(null, dto.listName(), null, null, null),
-				dto.tags() != null && !dto.tags().isEmpty() ? dto.tags().stream().map(Mapper::toTag).toList() : null
+				dto.getListName() == null ? null : new UserList(null, dto.getListName(), null, null, null),
+				dto.getTags() != null && !dto.getTags().isEmpty() ? dto.getTags().stream().map(Mapper::toTag).toList() : null
 				);
 	}
 
@@ -47,10 +47,10 @@ public class Mapper {
 
 	public static UserRequest toUserRequest(UserRequestDto dto) {
 		var user = new UserRequest();
-		user.setUsername(dto.username());
-		user.setPassword(dto.password());
-		user.setEmail(dto.email());
-		user.setRole(dto.role());
+		user.setUsername(dto.getUsername());
+		user.setPassword(dto.getPassword());
+		user.setEmail(dto.getEmail());
+		user.setRole(dto.getRole());
 		return user;
 	}
 

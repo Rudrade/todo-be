@@ -166,7 +166,7 @@ class UserServiceTest {
         var idViolations = validator.validateParameters(
             service(),
             method,
-            new Object[]{null, new UserChangeDto("new-user", null, null, null, null), adminUser()}
+            new Object[]{null, new UserChangeDto("new-user", null, null, null, null, null), adminUser()}
         );
         var dataViolations = validator.validateParameters(
             service(),
@@ -176,7 +176,7 @@ class UserServiceTest {
         var requesterViolations = validator.validateParameters(
             service(),
             method,
-            new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null), null}
+            new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null, null), null}
         );
 
         assertThat(idViolations).hasSize(1);
@@ -190,7 +190,7 @@ class UserServiceTest {
 
         assertThrows(
             InvalidDataException.class,
-            () -> service().updateUser(id, new UserChangeDto(null, null, null, null, null), adminUser())
+            () -> service().updateUser(id, new UserChangeDto(null, null, null, null, null, null), adminUser())
         );
 
         verifyNoInteractions(userRepository, userRequestRepository);
@@ -204,7 +204,7 @@ class UserServiceTest {
 
         assertThrows(
             InvalidDataException.class,
-            () -> service().updateUser(id, new UserChangeDto("user", null, null, null, null), adminUser())
+            () -> service().updateUser(id, new UserChangeDto("user", null, null, null, null, null), adminUser())
         );
 
         verify(userRepository, times(1)).findById(id);
@@ -226,7 +226,7 @@ class UserServiceTest {
 
         assertThrows(
             InvalidAccessException.class,
-            () -> service().updateUser(id, new UserChangeDto("new-user", null, null, null, null), requester)
+            () -> service().updateUser(id, new UserChangeDto("new-user", null, null, null, null, null), requester)
         );
 
         verify(userRepository, times(1)).findById(id);
@@ -251,7 +251,7 @@ class UserServiceTest {
             EntityAlreadyExistsException.class,
             () -> service().updateUser(
                 id,
-                new UserChangeDto("new-user", null, "new@mail.com", null, null),
+                new UserChangeDto("new-user", null, "new@mail.com", null, null, null),
                 adminUser()
             )
         );
@@ -267,7 +267,7 @@ class UserServiceTest {
         var user = new User();
         user.setRole(Role.ROLE_USER);
 
-        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null), user));
+        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null), user));
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
@@ -277,7 +277,7 @@ class UserServiceTest {
         var user = new User();
         user.setRole(Role.ROLE_USER);
 
-        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, null, Boolean.FALSE), user));
+        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, null, Boolean.FALSE, null), user));
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
@@ -294,8 +294,8 @@ class UserServiceTest {
         stored.setRole(Role.ROLE_USER);
 
         when(userRepository.findById(id)).thenReturn(Optional.of(stored));
-        when(userRepository.findActiveByUsernameOrEmail(data.username(), data.email())).thenReturn(List.of());
-        when(userRequestRepository.existsByUsernameOrEmail(data.username(), data.email())).thenReturn(false);
+        when(userRepository.findActiveByUsernameOrEmail(data.getUsername(), data.getEmail())).thenReturn(List.of());
+        when(userRequestRepository.existsByUsernameOrEmail(data.getUsername(), data.getEmail())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var result = service().updateUser(
@@ -304,9 +304,9 @@ class UserServiceTest {
             requester
         );
 
-        if (data.password() != null) {
-            assertThat(result.getPassword()).isNotEqualTo(data.password());
-            assertThat(new BCryptPasswordEncoder().matches(data.password(), result.getPassword())).isTrue();
+        if (data.getPassword() != null) {
+            assertThat(result.getPassword()).isNotEqualTo(data.getPassword());
+            assertThat(new BCryptPasswordEncoder().matches(data.getPassword(), result.getPassword())).isTrue();
         }
 
         assertThat(result)
@@ -315,11 +315,11 @@ class UserServiceTest {
             .isEqualTo(stored);
 
         var dataUser = new User();
-		dataUser.setUsername(data.username());
-		dataUser.setPassword(data.password());
-		dataUser.setEmail(data.email());
-		dataUser.setRole(data.role());
-		dataUser.setActive(Boolean.TRUE.equals(data.active()));
+		dataUser.setUsername(data.getUsername());
+		dataUser.setPassword(data.getPassword());
+		dataUser.setEmail(data.getEmail());
+		dataUser.setRole(data.getRole());
+		dataUser.setActive(Boolean.TRUE.equals(data.getActive()));
         dataUser.setId(id);
 
         assertThat(result)
@@ -329,8 +329,8 @@ class UserServiceTest {
             .isEqualTo(dataUser);
 
         verify(userRepository, times(1)).findById(id);
-        verify(userRepository, times(1)).findActiveByUsernameOrEmail(data.username(), data.email());
-        verify(userRequestRepository, times(1)).existsByUsernameOrEmail(data.username(), data.email());
+        verify(userRepository, times(1)).findActiveByUsernameOrEmail(data.getUsername(), data.getEmail());
+        verify(userRequestRepository, times(1)).existsByUsernameOrEmail(data.getUsername(), data.getEmail());
         verify(userRepository, times(1)).save(stored);
         verifyNoMoreInteractions(userRepository, userRequestRepository);
     }
@@ -342,13 +342,13 @@ class UserServiceTest {
         user.setRole(Role.ROLE_USER);
 
         return Stream.of(
-            Arguments.of(id, new UserChangeDto("new-username", null, null, null, null), adminUser(), new String[]{"username"}),
-            Arguments.of(id, new UserChangeDto(null, "new-password", null, null, null), adminUser(), new String[]{"password"}),
-            Arguments.of(id, new UserChangeDto(null, null, "new-mail@mail.com", null, null), adminUser(), new String[]{"email"}),
-            Arguments.of(id, new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null), adminUser(), new String[]{"role"}),
-            Arguments.of(id, new UserChangeDto(null, null, null, null, Boolean.FALSE), adminUser(), new String[]{"active"}),
-            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", Role.ROLE_ADMIN, Boolean.FALSE), adminUser(), new String[]{"username","password","email","role","active"}),
-            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", null, null), user, new String[]{"username","password","email"})
+            Arguments.of(id, new UserChangeDto("new-username", null, null, null, null, null), adminUser(), new String[]{"username"}),
+            Arguments.of(id, new UserChangeDto(null, "new-password", null, null, null, null), adminUser(), new String[]{"password"}),
+            Arguments.of(id, new UserChangeDto(null, null, "new-mail@mail.com", null, null, null), adminUser(), new String[]{"email"}),
+            Arguments.of(id, new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null), adminUser(), new String[]{"role"}),
+            Arguments.of(id, new UserChangeDto(null, null, null, null, Boolean.FALSE, null), adminUser(), new String[]{"active"}),
+            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", Role.ROLE_ADMIN, Boolean.FALSE, null), adminUser(), new String[]{"username","password","email","role","active"}),
+            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", null, null, null), user, new String[]{"username","password","email"})
         );
     }
 

@@ -21,4 +21,10 @@ public class ServiceUtil {
             throw new ConstraintViolationException(result);
         }
     }
+
+    public static String trimString(String str) {
+        if (str == null || str.isBlank()) return null;
+
+        return str.trim();
+    }
 }

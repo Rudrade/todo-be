@@ -28,15 +28,15 @@ public class AuthenticationService {
 
 	public LoginResponse authenticate(UserLoginDto user) {
 		if (user == null ||
-			user.username() == null || user.username().isBlank() ||
-			user.password() == null || user.password().isBlank())
+			user.getUsername() == null || user.getUsername().isBlank() ||
+			user.getPassword() == null || user.getPassword().isBlank())
 			throw new InvalidAccessException();
 
-	 	Optional<User>  optUser =  userRepository.findByUsername(user.username());
+	 	Optional<User>  optUser = userRepository.findByUsername(user.getUsername());
 		 if (optUser.isEmpty())
 			 throw new InvalidAccessException();
 
-		 if (!passwordEncoder.matches(user.password(), optUser.get().getPassword()))
+		 if (!passwordEncoder.matches(user.getPassword(), optUser.get().getPassword()))
 			 throw new InvalidAccessException();
 
 		 if (!optUser.get().isActive())

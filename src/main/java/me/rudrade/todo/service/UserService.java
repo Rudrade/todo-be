@@ -75,16 +75,16 @@ public class UserService extends ServiceUtil {
         @NotNull User requester
     ) {
         // Validate that at least one property is being updated
-        if (data.username() == null &&
-            data.password() == null &&
-            data.email() == null &&
-            data.role() == null &&
-            data.active() == null) {
+        if (data.getUsername() == null &&
+            data.getPassword() == null &&
+            data.getEmail() == null &&
+            data.getRole() == null &&
+            data.getActive() == null) {
             throw new InvalidDataException("A property must be set to update the resource.");
         }
 
         // Only admins can update role or active properties
-        if (!Role.ROLE_ADMIN.equals(requester.getRole()) && (data.role() != null || data.active() != null))
+        if (!Role.ROLE_ADMIN.equals(requester.getRole()) && (data.getRole() != null || data.getActive() != null))
             throw new InvalidAccessException();
 
         // Validate if resource exists
@@ -96,28 +96,45 @@ public class UserService extends ServiceUtil {
             throw new InvalidAccessException();
         }
 
+        // If is own user, validate password
+        if (id.equals(requester.getId())) {
+            var matches = false;
+            if (data.getOldPassword() != null) {
+                matches =  passwordEncoder.matches(data.getOldPassword(), user.getPassword());
+            }
+
+            if (!matches) {
+                throw new InvalidDataException("Old password is invalid");
+            }
+        }
+
+        // Admin - Only own user can update password
+        if (Role.ROLE_ADMIN.equals(requester.getRole()) && !id.equals(requester.getId()) && data.getPassword() != null)  {
+            throw new InvalidAccessException();
+        }
+
         // If changing username or email, validate if already doesn't exist on in DB
-        validateAlreadyExists(data.username(), data.email(), id);
+        validateAlreadyExists(data.getUsername(), data.getEmail(), id);
 
         // Update only setted values
-        if (data.username() != null) {
-            user.setUsername(data.username());
+        if (data.getUsername() != null) {
+            user.setUsername(data.getUsername());
         }
 
-        if (data.password() != null) {
-            user.setPassword(passwordEncoder.encode(data.password()));
+        if (data.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(data.getPassword()));
         }
 
-        if (data.email() != null) {
-            user.setEmail(data.email());
+        if (data.getEmail() != null) {
+            user.setEmail(data.getEmail());
         }
 
-        if (data.role() != null) {
-            user.setRole(data.role());
+        if (data.getRole() != null) {
+            user.setRole(data.getRole());
         }
 
-        if (data.active() != null) {
-            user.setActive(data.active());
+        if (data.getActive() != null) {
+            user.setActive(data.getActive());
         }
 
         // Save resource

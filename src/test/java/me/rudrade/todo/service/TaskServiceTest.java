@@ -76,7 +76,7 @@ class TaskServiceTest {
 
         TaskDto output = taskService().saveTask(input, user);
 
-        assertThat(output.id()).isEqualTo(saved.getId());
+        assertThat(output.getId()).isEqualTo(saved.getId());
         verify(taskRepository).save(argThat(t -> t.getUser().equals(user)));
         verifyNoInteractions(userListService, tagService);
     }
@@ -98,7 +98,7 @@ class TaskServiceTest {
 
         TaskDto output = taskService().saveTask(input, user);
 
-        assertThat(output.id()).isEqualTo(taskId);
+        assertThat(output.getId()).isEqualTo(taskId);
         verify(taskRepository).findByIdAndUserId(taskId, user.getId());
         verify(taskRepository).save(any(Task.class));
         verifyNoMoreInteractions(taskRepository);
@@ -110,13 +110,13 @@ class TaskServiceTest {
         User user = user();
         TaskDto input = new TaskDto(UUID.randomUUID(), "title", "desc", LocalDate.now(), null, null);
 
-        when(taskRepository.findByIdAndUserId(input.id(), user.getId())).thenReturn(Optional.empty());
+        when(taskRepository.findByIdAndUserId(input.getId(), user.getId())).thenReturn(Optional.empty());
 
         TaskService service = taskService();
 
         assertThrows(TaskNotFoundException.class, () -> service.saveTask(input, user));
 
-        verify(taskRepository).findByIdAndUserId(input.id(), user.getId());
+        verify(taskRepository).findByIdAndUserId(input.getId(), user.getId());
         verifyNoMoreInteractions(taskRepository);
         verifyNoInteractions(userListService, tagService);
     }
@@ -134,7 +134,7 @@ class TaskServiceTest {
 
         TaskDto output = taskService().saveTask(input, user);
 
-        assertThat(output.listName()).isNull();
+        assertThat(output.getListName()).isNull();
         verify(taskRepository).save(argThat(t -> t.getUserList() == null));
         verifyNoInteractions(userListService, tagService);
     }
@@ -155,7 +155,7 @@ class TaskServiceTest {
 
         TaskDto output = taskService().saveTask(input, user);
 
-        assertThat(output.listName()).isEqualTo(listName);
+        assertThat(output.getListName()).isEqualTo(listName);
         verify(userListService).saveByName(listName, user);
         verify(taskRepository).save(argThat(t -> t.getUserList() != null && listName.equals(t.getUserList().getName())));
         verifyNoMoreInteractions(userListService);
@@ -177,7 +177,7 @@ class TaskServiceTest {
 
         TaskDto output = taskService().saveTask(input, user);
 
-        assertThat(output.tags()).singleElement().isEqualTo(tagDto);
+        assertThat(output.getTags()).singleElement().isEqualTo(tagDto);
         verify(tagService).findOrCreateByUser(eq(user), any(Tag.class));
         verify(taskRepository).save(argThat(t -> t.getTags() != null && t.getTags().size() == 1));
     }
