@@ -1,6 +1,7 @@
 package me.rudrade.todo.service;
 
 import java.util.Date;
+import java.util.UUID;
 
 import jakarta.validation.constraints.NotBlank;
 import me.rudrade.todo.exception.InvalidDataException;
@@ -14,7 +15,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 
 @Service
 public class JwtService {
-	
+
 	private static final String CLAIM_USERNAME = "username";
 	private static final String CLAIM_ROLE = "role";
 	private static final String CLAIM_REFRESHES = "refreshes";
@@ -41,6 +42,7 @@ public class JwtService {
 				.withClaim(CLAIM_USERNAME, user.getUsername())
 				.withClaim(CLAIM_ROLE, user.getRole()==null?"":user.getRole().name())
 				.withClaim(CLAIM_REFRESHES, refresh)
+				.withSubject(user.getId().toString())
 				.withIssuedAt(new Date(System.currentTimeMillis()))
 				.withExpiresAt(new Date(System.currentTimeMillis() + jwtExpiration))
 				.sign(getAlgorithm());
@@ -50,12 +52,13 @@ public class JwtService {
 		return Algorithm.HMAC256(secretKey);
 	}
 	
-	public String extractUsername(String token) {
-		if (token != null) {
-			return JWT.decode(cleanBearer(token)).getClaim(CLAIM_USERNAME).asString();
+	public UUID getSubjectId(@NotBlank String authToken) {
+		try {
+			var strId = JWT.decode(cleanBearer(authToken)).getSubject();
+			return UUID.fromString(strId);
+		} catch (IllegalArgumentException | NullPointerException e) {
+			return null;
 		}
-
-		return null;
 	}
 
 	public String cleanBearer(@NotBlank String token) {
@@ -73,16 +76,16 @@ public class JwtService {
 			.verify(token);
 	}
 
-	public boolean isTokenValidWithLeeway(@NotBlank String token, @NotBlank String username) {
+	public boolean isTokenValidWithLeeway(@NotBlank String token, @NotBlank UUID id) {
 		var decoded = decodeTokenWithLeeway(token);
 
-		return username.equals(decoded.getClaim(CLAIM_USERNAME).asString());
+		return id.toString().equals(decoded.getSubject());
 	}
 	
-	public boolean isTokenValid(@NotBlank String token, @NotBlank String username) {
-		DecodedJWT decodedJwt = decodeJWT(token);
+	public boolean isTokenValid(@NotBlank String token, @NotBlank UUID id) {
+		var decodedJwt = decodeJWT(token);
 		
-		return username.equals(decodedJwt.getClaim(CLAIM_USERNAME).asString()); 
+		return id.toString().equals(decodedJwt.getSubject()); 
 	}
 
 	private DecodedJWT decodeJWT(String token) {

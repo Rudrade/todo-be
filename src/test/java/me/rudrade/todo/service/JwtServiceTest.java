@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Date;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -54,32 +55,11 @@ class JwtServiceTest {
     }
 
     @Test
-    void itShouldExtractUsernameWithBearerPrefix() {
-        User user = user();
-        String token = jwtService.generateToken(user);
-
-        assertThat(jwtService.extractUsername("Bearer " + token)).isEqualTo(user.getUsername());
-    }
-
-    @Test
-    void itShouldExtractUsernameWithoutPrefix() {
-        User user = user();
-        String token = jwtService.generateToken(user);
-
-        assertThat(jwtService.extractUsername(token)).isEqualTo(user.getUsername());
-    }
-
-    @Test
-    void itShouldReturnNullWhenExtractingUsernameFromNull() {
-        assertThat(jwtService.extractUsername(null)).isNull();
-    }
-
-    @Test
     void itShouldValidateToken() {
         User user = user();
         String token = jwtService.generateToken(user);
 
-        assertThat(jwtService.isTokenValid(token, user.getUsername())).isTrue();
+        assertThat(jwtService.isTokenValid(token, user.getId())).isTrue();
     }
 
     @Test
@@ -87,11 +67,12 @@ class JwtServiceTest {
         User user = user();
         String token = jwtService.generateToken(user);
 
-        assertThat(jwtService.isTokenValid(token, "other-user")).isFalse();
+        assertThat(jwtService.isTokenValid(token, UUID.randomUUID())).isFalse();
     }
 
     private User user() {
         User user = new User();
+        user.setId(UUID.randomUUID());
         user.setUsername("john");
         user.setRole(Role.ROLE_USER);
         return user;

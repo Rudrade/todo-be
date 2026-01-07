@@ -46,8 +46,12 @@ public class AuthenticationService {
 	}
 
 	public String refreshToken(@NotBlank String authToken) {
+		var id = jwtService.getSubjectId(authToken);
+		if (id == null)
+			throw new InvalidAccessException();
+
 		// Validate if token is valid, ignoring expiration date
-		var isTokenValid = jwtService.isTokenValidWithLeeway(authToken, jwtService.extractUsername(authToken));
+		var isTokenValid = jwtService.isTokenValidWithLeeway(authToken, id);
 		if (!isTokenValid)
 			throw new InvalidAccessException();
 
@@ -62,15 +66,12 @@ public class AuthenticationService {
 		return jwtService.generateToken(user, refreshes+1);
 	}
 
-	public User getUserByAuth(String authToken) {
-		if (authToken == null || authToken.isBlank())
+	public User getUserByAuth(@NotBlank String authToken) {
+		var id = jwtService.getSubjectId(authToken);
+		if (id == null)
 			throw new InvalidAccessException();
 
-		String username = jwtService.extractUsername(authToken);
-		if (username == null || username.isBlank())
-			throw new InvalidAccessException();
-
-		return userRepository.findByUsername(username).orElseThrow(InvalidAccessException::new);
+		return userRepository.findById(id).orElseThrow(InvalidAccessException::new);
 	}
 
 }

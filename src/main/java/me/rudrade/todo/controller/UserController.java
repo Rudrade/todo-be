@@ -45,7 +45,7 @@ public class UserController {
         @RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
         @PathVariable UUID id,
         @RequestBody UserChangeDto body
-    ) {
+    ) { // TODO: Add oldPassword field, so validates password user
         var requester = authenticationService.getUserByAuth(authToken);
         var result = userService.updateUser(id, body, requester);
 

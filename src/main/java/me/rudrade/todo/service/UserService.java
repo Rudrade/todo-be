@@ -59,6 +59,9 @@ public class UserService extends ServiceUtil {
         @NotNull(message = "User id must be provided.") UUID id,
         @NotNull User requester
     ) {
+        if (id.equals(requester.getId()))
+            return requester;
+
         if (!Role.ROLE_ADMIN.equals(requester.getRole()))
             throw new InvalidAccessException();
         
