@@ -83,6 +83,38 @@ public class UserService extends ServiceUtil {
             throw new InvalidDataException("A property must be set to update the resource.");
         }
 
+        // Validate access
+        var user = validateUpdateAccess(id, data, requester);
+
+        // If changing username or email, validate if already doesn't exist on in DB
+        validateAlreadyExists(data.getUsername(), data.getEmail(), id);
+
+        // Update only setted values
+        if (data.getUsername() != null) {
+            user.setUsername(data.getUsername());
+        }
+
+        if (data.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(data.getPassword()));
+        }
+
+        if (data.getEmail() != null) {
+            user.setEmail(data.getEmail());
+        }
+
+        if (data.getRole() != null) {
+            user.setRole(data.getRole());
+        }
+
+        if (data.getActive() != null) {
+            user.setActive(data.getActive());
+        }
+
+        // Save resource
+        return userRepository.save(user);
+    }
+
+    private User validateUpdateAccess(@NotNull UUID id, @NotNull UserChangeDto data, @NotNull User requester) {
         // Only admins can update role or active properties
         if (!Role.ROLE_ADMIN.equals(requester.getRole()) && (data.getRole() != null || data.getActive() != null))
             throw new InvalidAccessException();
@@ -113,39 +145,17 @@ public class UserService extends ServiceUtil {
             throw new InvalidAccessException();
         }
 
-        // If changing username or email, validate if already doesn't exist on in DB
-        validateAlreadyExists(data.getUsername(), data.getEmail(), id);
-
-        // Update only setted values
-        if (data.getUsername() != null) {
-            user.setUsername(data.getUsername());
-        }
-
-        if (data.getPassword() != null) {
-            user.setPassword(passwordEncoder.encode(data.getPassword()));
-        }
-
-        if (data.getEmail() != null) {
-            user.setEmail(data.getEmail());
-        }
-
-        if (data.getRole() != null) {
-            user.setRole(data.getRole());
-        }
-
-        if (data.getActive() != null) {
-            user.setActive(data.getActive());
-        }
-
-        // Save resource
-        return userRepository.save(user);
+        return user;
     }
 
     private void validateAlreadyExists(String username, String email, UUID id) {
         var existsUser = userRepository.findActiveByUsernameOrEmail(username, email);
         if (!existsUser.isEmpty()) {
-            var allIdMatches = id == null ? false : existsUser.stream()
-                .allMatch(user -> user.getId().equals(id));
+            var allIdMatches = false;
+            if (id != null) {
+                allIdMatches = existsUser.stream()
+                    .allMatch(user -> user.getId().equals(id));
+            }
             if (!allIdMatches) {
                 throw new EntityAlreadyExistsException("User with the same username and/or email already exists.");
             }

@@ -23,6 +23,8 @@ import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,11 +40,10 @@ class UserServiceTest {
     @Mock private MailService mailService;
 
     private UserService userService;
-    private UserService service() {
-        if (userService == null) {
-            userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService);
-        }
-        return userService;
+
+    @BeforeEach
+    void setup() {
+        userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService);
     }
 
     private static User adminUser() {
@@ -64,7 +65,8 @@ class UserServiceTest {
         when(userRepository.findActiveByUsernameOrEmail("new-user", "new-user@mail.com"))
             .thenReturn(List.of(user));
 
-        assertThrows(EntityAlreadyExistsException.class, () -> service().createUser(validDto()));
+        var request = validDto();
+        assertThrows(EntityAlreadyExistsException.class, () -> userService.createUser(request));
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verifyNoInteractions(userRequestRepository);
@@ -77,7 +79,8 @@ class UserServiceTest {
         when(userRequestRepository.existsByUsernameOrEmail("new-user", "new-user@mail.com"))
             .thenReturn(true);
 
-        assertThrows(EntityAlreadyExistsException.class, () -> service().createUser(validDto()));
+        var request = validDto();
+        assertThrows(EntityAlreadyExistsException.class, () -> userService.createUser(request));
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verify(userRequestRepository, times(1)).existsByUsernameOrEmail("new-user", "new-user@mail.com");
@@ -93,7 +96,7 @@ class UserServiceTest {
         when(userRequestRepository.save(any(UserRequest.class)))
             .thenAnswer(inv -> inv.getArgument(0));
 
-        UserRequest result = service().createUser(validDto());
+        UserRequest result = userService.createUser(validDto());
 
         assertThat(result)
             .isNotNull()
@@ -121,7 +124,8 @@ class UserServiceTest {
         User requester = new User();
         requester.setRole(Role.ROLE_USER);
 
-        assertThrows(InvalidAccessException.class, () -> service().getById(UUID.randomUUID(), requester));
+        var id = UUID.randomUUID();
+        assertThrows(InvalidAccessException.class, () -> userService.getById(id, requester));
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
@@ -131,7 +135,8 @@ class UserServiceTest {
         UUID id = UUID.randomUUID();
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(InvalidDataException.class, () -> service().getById(id, adminUser()));
+        var admin = adminUser();
+        assertThrows(InvalidDataException.class, () -> userService.getById(id, admin));
 
         verify(userRepository, times(1)).findById(id);
         verifyNoInteractions(userRequestRepository);
@@ -144,7 +149,7 @@ class UserServiceTest {
         expected.setId(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(expected));
 
-        User result = service().getById(id, adminUser());
+        User result = userService.getById(id, adminUser());
 
         assertThat(result).isEqualTo(expected);
         verify(userRepository, times(1)).findById(id);
@@ -161,17 +166,17 @@ class UserServiceTest {
         var method = UserService.class.getMethod("updateUser", UUID.class, UserChangeDto.class, User.class);
 
         var idViolations = validator.validateParameters(
-            service(),
+            userService,
             method,
             new Object[]{null, new UserChangeDto("new-user", null, null, null, null, null), adminUser()}
         );
         var dataViolations = validator.validateParameters(
-            service(),
+            userService,
             method,
             new Object[]{UUID.randomUUID(), null, adminUser()}
         );
         var requesterViolations = validator.validateParameters(
-            service(),
+            userService,
             method,
             new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null, null), null}
         );
@@ -183,26 +188,24 @@ class UserServiceTest {
 
     @Test
     void itShouldThrowWhenNoFieldsProvided() {
-        UUID id = UUID.randomUUID();
+        var id = UUID.randomUUID();
+        var data = new UserChangeDto(null, null, null, null, null, null);
+        var admin = adminUser();
 
-        assertThrows(
-            InvalidDataException.class,
-            () -> service().updateUser(id, new UserChangeDto(null, null, null, null, null, null), adminUser())
-        );
+        assertThrows(InvalidDataException.class, () -> userService.updateUser(id, data, admin));
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
 
     @Test
     void itShouldThrowWhenUpdatingNonExistingUser() {
-        UUID id = UUID.randomUUID();
+        var id = UUID.randomUUID();
+        var data = new UserChangeDto("user", null, null, null, null, null);
+        var admin = adminUser();
 
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(
-            InvalidDataException.class,
-            () -> service().updateUser(id, new UserChangeDto("user", null, null, null, null, null), adminUser())
-        );
+        assertThrows(InvalidDataException.class, () -> userService.updateUser(id, data, admin));
 
         verify(userRepository, times(1)).findById(id);
         verifyNoMoreInteractions(userRepository);
@@ -221,10 +224,9 @@ class UserServiceTest {
         requester.setId(UUID.randomUUID());
         requester.setRole(Role.ROLE_USER);
 
-        assertThrows(
-            InvalidAccessException.class,
-            () -> service().updateUser(id, new UserChangeDto("new-user", null, null, null, null, null), requester)
-        );
+        var data = new UserChangeDto("new-user", null, null, null, null, null);
+
+        assertThrows(InvalidAccessException.class, () -> userService.updateUser(id, data, requester));
 
         verify(userRepository, times(1)).findById(id);
         verifyNoMoreInteractions(userRepository);
@@ -244,14 +246,10 @@ class UserServiceTest {
         when(userRepository.findActiveByUsernameOrEmail("new-user", "new@mail.com"))
             .thenReturn(List.of(user));
 
-        assertThrows(
-            EntityAlreadyExistsException.class,
-            () -> service().updateUser(
-                id,
-                new UserChangeDto("new-user", null, "new@mail.com", null, null, null),
-                adminUser()
-            )
-        );
+        var data = new UserChangeDto("new-user", null, "new@mail.com", null, null, null);
+        var admin = adminUser();
+
+        assertThrows(EntityAlreadyExistsException.class, () -> userService.updateUser(id, data, admin));
         
         verify(userRepository, times(1)).findById(id);
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new@mail.com");
@@ -264,7 +262,10 @@ class UserServiceTest {
         var user = new User();
         user.setRole(Role.ROLE_USER);
 
-        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null), user));
+        var id = UUID.randomUUID();
+        var data = new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null);
+
+        assertThrows(InvalidAccessException.class,  () -> userService.updateUser(id, data, user));
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
@@ -274,7 +275,10 @@ class UserServiceTest {
         var user = new User();
         user.setRole(Role.ROLE_USER);
 
-        assertThrows(InvalidAccessException.class,  () -> service().updateUser(UUID.randomUUID(), new UserChangeDto(null, null, null, null, Boolean.FALSE, null), user));
+        var id = UUID.randomUUID();
+        var data = new UserChangeDto(null, null, null, null, Boolean.FALSE, null);
+
+        assertThrows(InvalidAccessException.class,  () -> userService.updateUser(id, data, user));
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
@@ -286,14 +290,15 @@ class UserServiceTest {
         User requester = new User();
         requester.setRole(Role.ROLE_USER);
 
-        assertThrows(InvalidAccessException.class, () -> service().getAllUsers(null, null, null, requester));
+        assertThrows(InvalidAccessException.class, () -> userService.getAllUsers(null, null, null, requester));
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
 
     @Test
     void itShouldThrowWhenSearchTypeWithoutTerm() {
-        assertThrows(InvalidDataException.class, () -> service().getAllUsers(null, UserSearchType.USERNAME, " ", adminUser()));
+        var admin = adminUser();
+        assertThrows(InvalidDataException.class, () -> userService.getAllUsers(null, UserSearchType.USERNAME, " ", admin));
         verifyNoInteractions(userRepository, userRequestRepository);
     }
 
@@ -306,7 +311,7 @@ class UserServiceTest {
         user1.setActive(true);
         when(userRepository.findAll()).thenReturn(List.of(user1));
 
-        var result = service().getAllUsers(null, null, null, adminUser());
+        var result = userService.getAllUsers(null, null, null, adminUser());
 
         assertThat(result).hasSize(1);
         verify(userRepository, times(1)).findAll();
@@ -317,7 +322,7 @@ class UserServiceTest {
         User user1 = new User(); user1.setActive(true);
         when(userRepository.findByActive(true)).thenReturn(List.of(user1));
 
-        var result = service().getAllUsers(true, null, null, adminUser());
+        var result = userService.getAllUsers(true, null, null, adminUser());
 
         assertThat(result).hasSize(1);
         verify(userRepository, times(1)).findByActive(true);
@@ -328,7 +333,7 @@ class UserServiceTest {
         User user1 = new User(); user1.setUsername("john"); user1.setActive(true);
         when(userRepository.findByUsernameContainingIgnoreCase("jo")).thenReturn(List.of(user1));
 
-        var result = service().getAllUsers(null, UserSearchType.USERNAME, "jo", adminUser());
+        var result = userService.getAllUsers(null, UserSearchType.USERNAME, "jo", adminUser());
 
         assertThat(result).hasSize(1);
         verify(userRepository, times(1)).findByUsernameContainingIgnoreCase("jo");
@@ -339,7 +344,7 @@ class UserServiceTest {
         User user1 = new User(); user1.setEmail("mail@test.com"); user1.setActive(false);
         when(userRepository.findByActiveAndEmailContainingIgnoreCase(false, "mail")).thenReturn(List.of(user1));
 
-        var result = service().getAllUsers(false, UserSearchType.EMAIL, "mail", adminUser());
+        var result = userService.getAllUsers(false, UserSearchType.EMAIL, "mail", adminUser());
 
         assertThat(result).hasSize(1);
         verify(userRepository, times(1)).findByActiveAndEmailContainingIgnoreCase(false, "mail");
@@ -355,7 +360,7 @@ class UserServiceTest {
             .thenReturn(Optional.empty());
         
         assertThrows(InvalidDataException.class, 
-            () -> service().activateUser(id)
+            () -> userService.activateUser(id)
         );
 
         verify(userRequestRepository, times(1)).findById(id);
@@ -370,7 +375,7 @@ class UserServiceTest {
             .thenReturn(Optional.empty());
         
         assertThrows(InvalidDataException.class, 
-            () -> service().activateUser(null)
+            () -> userService.activateUser(null)
         );
 
         verify(userRequestRepository, times(1)).findById(null);
@@ -402,7 +407,7 @@ class UserServiceTest {
                 return user;
             });
 
-        var result = service().activateUser(id);
+        var result = userService.activateUser(id);
 
         assertThat(result)
             .isNotNull()
@@ -445,7 +450,7 @@ class UserServiceTest {
 
         when(userRequestRepository.findAll()).thenReturn(List.of(request1, request2));
 
-        var result = service().findAllRequest(null, null);
+        var result = userService.findAllRequest(null, null);
 
         assertThat(result)
             .hasSize(2)
@@ -469,7 +474,7 @@ class UserServiceTest {
 
         when(userRequestRepository.findAllByEmailContainingIgnoringCase("test")).thenReturn(List.of(request1, request2));
 
-        var result = service().findAllRequest("EMAIL", "test");
+        var result = userService.findAllRequest("EMAIL", "test");
 
         assertThat(result)
             .hasSize(2)
@@ -494,7 +499,7 @@ class UserServiceTest {
 
         when(userRequestRepository.findAllByUsernameContainingIgnoringCase("test")).thenReturn(List.of(request1, request2));
 
-        var result = service().findAllRequest("USERNAME", "test");
+        var result = userService.findAllRequest("USERNAME", "test");
 
         assertThat(result)
             .hasSize(2)
