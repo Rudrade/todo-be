@@ -59,7 +59,7 @@ class TodoControllerTest extends ControllerIntegration {
                 assertThat(response)
                     .usingRecursiveComparison().ignoringFields("id")
                     .isEqualTo(input);
-                assertThat(response.id()).isNotNull();
+                assertThat(response.getId()).isNotNull();
             });
     }
 
@@ -104,7 +104,7 @@ class TodoControllerTest extends ControllerIntegration {
             assertThat(response.tasks())
                 .isNotEmpty()
                 .allSatisfy(task -> {
-                    assertThat(task.dueDate())
+                    assertThat(task.getDueDate())
                         .isNotNull()
                         .isToday();
                 });
@@ -123,7 +123,7 @@ class TodoControllerTest extends ControllerIntegration {
             assertThat(response.tasks())
                 .isNotEmpty()
                 .allSatisfy(task -> {
-                    assertThat(task.title())
+                    assertThat(task.getTitle())
                         .containsIgnoringCase("title");
                 });
         });
@@ -141,7 +141,7 @@ class TodoControllerTest extends ControllerIntegration {
         );
         TaskDto savedTask = taskService.saveTask(input, getTestUser());
 
-        var assertResp = assertThat(mvc.get().uri(URI_GET_DETAIL, savedTask.id().toString())
+        var assertResp = assertThat(mvc.get().uri(URI_GET_DETAIL, savedTask.getId().toString())
             .headers(getAuthHeader()));
 
         assertResp.hasStatusOk()
@@ -172,12 +172,12 @@ class TodoControllerTest extends ControllerIntegration {
 
         TaskDto savedTask = taskService.saveTask(input, user);
 
-        assertThat(mvc.delete().uri(URI_DELETE, savedTask.id().toString())
+        assertThat(mvc.delete().uri(URI_DELETE, savedTask.getId().toString())
             .headers(getAuthHeader())
         ).hasStatusOk();
 
         TaskService service = taskService;
-        UUID deletedId = savedTask.id();
+        UUID deletedId = savedTask.getId();
         assertThrows(TaskNotFoundException.class, () -> service.getById(deletedId, user));
     }
 

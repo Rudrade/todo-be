@@ -16,49 +16,52 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import me.rudrade.todo.exception.InvalidAccessException;
+import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.service.JwtService;
 
 @Component
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 	private final JwtService jwtService;
 	private final UserDetailsService userDetailsService;
-
-    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
-    }
+	private final UserRepository userRepository;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
-		final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+		final var authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 		
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 			filterChain.doFilter(request, response);
 			return;
 		}
 		
-		final String jwt = authHeader.substring(7);
-		final String username = jwtService.extractUsername(jwt);
+		final var jwt = authHeader.substring(7);
+		final var subject = jwtService.getSubjectId(jwt);
 		
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (username != null && authentication == null) {
-			UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-			if (jwtService.isTokenValidWithLeeway(jwt, username)) {
-				UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-						userDetails,
-						null,
-						userDetails.getAuthorities());
-				
-				authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-				SecurityContextHolder.getContext().setAuthentication(authToken);
-				
-				filterChain.doFilter(request, response);
-				return;
+		if (subject != null && authentication == null &&
+			jwtService.isTokenValidWithLeeway(jwt, subject)
+		) {
+			var user = userRepository.findById(subject).orElseThrow(InvalidAccessException::new);
+			if (user.isActive()) {
+				UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+				if (userDetails != null) {
+					UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+							userDetails,
+							null,
+							userDetails.getAuthorities());
+					
+					authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+					SecurityContextHolder.getContext().setAuthentication(authToken);
+					
+					filterChain.doFilter(request, response);
+					return;
+				}
 			}
 		}
 		

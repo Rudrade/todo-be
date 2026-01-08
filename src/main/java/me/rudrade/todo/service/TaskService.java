@@ -41,8 +41,8 @@ public class TaskService extends ServiceUtil {
 
 	public TaskDto saveTask(TaskDto input, User user) {
 
-		if (input.id() != null) {
-			Optional<Task> optTask = repository.findByIdAndUserId(input.id(), user.getId());
+		if (input.getId() != null) {
+			Optional<Task> optTask = repository.findByIdAndUserId(input.getId(), user.getId());
 			if (optTask.isEmpty()) {
 				throw new TaskNotFoundException();
 			}
@@ -50,21 +50,21 @@ public class TaskService extends ServiceUtil {
 
 		Task inputTask = Mapper.toTask(input);
 		inputTask.setUser(user);
-		if (input.listName() != null) {
-			if (input.listName().isBlank()) {
+		if (input.getListName() != null) {
+			if (input.getListName().isBlank()) {
 				inputTask.setUserList(null);
 			} else {
-				UserList userList = userListService.saveByName(input.listName(), user);
+				UserList userList = userListService.saveByName(input.getListName(), user);
 				inputTask.setUserList(userList);
 			}
 		}
 
 		// Find all tasks by name and user
 		List<Tag> lstTags = null;
-		if (input.tags() != null && !input.tags().isEmpty()) {
+		if (input.getTags() != null && !input.getTags().isEmpty()) {
 			// If missing some, create them
 			lstTags = new ArrayList<>();
-			for (TagDto tag : input.tags()) {
+			for (TagDto tag : input.getTags()) {
 				lstTags.add(tagService.findOrCreateByUser(user, Mapper.toTag(tag)));
 			}
 

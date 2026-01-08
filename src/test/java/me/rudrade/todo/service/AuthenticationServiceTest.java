@@ -50,20 +50,26 @@ class AuthenticationServiceTest {
         var issuedAt = Calendar.getInstance();
         issuedAt.add(Calendar.MINUTE, -10);
 
+        var id = UUID.randomUUID();
+
         var token = JWT.create()
             .withIssuer(JWT_ISSUER)
             .withClaim("username", "test-user")
             .withClaim("role", "test-role")
             .withClaim("refreshes", 3)
+            .withSubject(id.toString())
             .withIssuedAt(issuedAt.getTime())
             .withExpiresAt(issuedAt.getTime())
             .sign(getAlgorithm());
 
-        when(jwtService.extractUsername(token)).thenReturn("test-user");
-        when(jwtService.isTokenValidWithLeeway(token, "test-user")).thenReturn(true);
+        var user = new User();
+        user.setId(id);
+
+        when(jwtService.getSubjectId(token)).thenReturn(id);
+        when(jwtService.isTokenValidWithLeeway(token, id)).thenReturn(true);
         when(jwtService.getTokenRefreshes(token)).thenReturn(4);
         when(jwtService.generateToken(any(User.class), anyInt())).thenCallRealMethod();
-        when(userRepository.findByUsername("test-user")).thenReturn(Optional.of(new User()));
+        when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
         var result = getAuthenticationService().refreshToken(token);
         assertThat(result).isNotBlank();
@@ -75,27 +81,28 @@ class AuthenticationServiceTest {
             .getClaim("refreshes").asInt();
         assertThat(decodedRefreshes).isEqualTo(5);
 
-        verify(jwtService, times(1)).isTokenValidWithLeeway(token, "test-user");
+        verify(jwtService, times(1)).isTokenValidWithLeeway(token, id);
         verify(jwtService, times(1)).getTokenRefreshes(token);
-        verify(jwtService, times(2)).extractUsername(token);
+        verify(jwtService, times(2)).getSubjectId(token);
         verify(jwtService, times(1)).generateToken(any(User.class), eq(5));
         verifyNoMoreInteractions(jwtService);
 
-        verify(userRepository, times(1)).findByUsername("test-user");
+        verify(userRepository, times(1)).findById(id);
         verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void itShouldThrowWhenTokenIsInvalid() {
-        when(jwtService.extractUsername("test-token")).thenReturn("test-user");
-        when(jwtService.isTokenValidWithLeeway("test-token", "test-user")).thenReturn(false);
+        var id = UUID.randomUUID();
+        when(jwtService.getSubjectId("test-token")).thenReturn(id);
+        when(jwtService.isTokenValidWithLeeway("test-token", id)).thenReturn(false);
 
         assertThrows(InvalidAccessException.class, () -> {
            getAuthenticationService().refreshToken("test-token");
         });
 
-        verify(jwtService, times(1)).extractUsername("test-token");
-        verify(jwtService, times(1)).isTokenValidWithLeeway("test-token", "test-user");
+        verify(jwtService, times(1)).getSubjectId("test-token");
+        verify(jwtService, times(1)).isTokenValidWithLeeway("test-token", id);
         verifyNoMoreInteractions(jwtService);
         verifyNoInteractions(userRepository);
     }
@@ -105,23 +112,26 @@ class AuthenticationServiceTest {
         var issuedAt = Calendar.getInstance();
         issuedAt.add(Calendar.MINUTE, -10);
 
+        var id = UUID.randomUUID();
+
         var token = JWT.create()
             .withIssuer(JWT_ISSUER)
             .withClaim("username", "test-user")
             .withClaim("role", "test-role")
             .withClaim("refreshes", 5)
+            .withSubject(id.toString())
             .withIssuedAt(issuedAt.getTime())
             .withExpiresAt(issuedAt.getTime())
             .sign(getAlgorithm());
 
-        when(jwtService.extractUsername(token)).thenReturn("test-user");
-        when(jwtService.isTokenValidWithLeeway(token, "test-user")).thenReturn(true);
+        when(jwtService.getSubjectId(token)).thenReturn(id);
+        when(jwtService.isTokenValidWithLeeway(token, id)).thenReturn(true);
         when(jwtService.getTokenRefreshes(token)).thenReturn(5);
 
         assertThrows(InvalidAccessException.class, () -> getAuthenticationService().refreshToken(token));
 
-        verify(jwtService, times(1)).extractUsername(token);
-        verify(jwtService, times(1)).isTokenValidWithLeeway(token, "test-user");
+        verify(jwtService, times(1)).getSubjectId(token);
+        verify(jwtService, times(1)).isTokenValidWithLeeway(token, id);
         verify(jwtService, times(1)).getTokenRefreshes(token);
         verifyNoMoreInteractions(jwtService, userRepository);
     }
@@ -131,26 +141,29 @@ class AuthenticationServiceTest {
         var issuedAt = Calendar.getInstance();
         issuedAt.add(Calendar.MINUTE, -10);
 
+        var id = UUID.randomUUID();
+
         var token = JWT.create()
             .withIssuer(JWT_ISSUER)
             .withClaim("username", "test-user")
             .withClaim("role", "test-role")
             .withClaim("refreshes", 3)
+            .withSubject(id.toString())
             .withIssuedAt(issuedAt.getTime())
             .withExpiresAt(issuedAt.getTime())
             .sign(getAlgorithm());
 
-        when(jwtService.extractUsername(token)).thenReturn("test-user");
-        when(jwtService.isTokenValidWithLeeway(token, "test-user")).thenReturn(true);
+        when(jwtService.getSubjectId(token)).thenReturn(id);
+        when(jwtService.isTokenValidWithLeeway(token, id)).thenReturn(true);
         when(jwtService.getTokenRefreshes(token)).thenReturn(3);
-        when(userRepository.findByUsername("test-user")).thenReturn(Optional.empty());
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(InvalidAccessException.class, () -> getAuthenticationService().refreshToken(token));
 
-        verify(jwtService, times(2)).extractUsername(token);
-        verify(jwtService, times(1)).isTokenValidWithLeeway(token, "test-user");
+        verify(jwtService, times(2)).getSubjectId(token);
+        verify(jwtService, times(1)).isTokenValidWithLeeway(token, id);
         verify(jwtService, times(1)).getTokenRefreshes(token);
-        verify(userRepository, times(1)).findByUsername("test-user");
+        verify(userRepository, times(1)).findById(id);
         verifyNoMoreInteractions(jwtService, userRepository);
     }
 
@@ -231,72 +244,32 @@ class AuthenticationServiceTest {
         user.setUsername("rui");
         user.setActive(true);
 
-        when(jwtService.extractUsername("auth-token"))
-            .thenReturn("rui");
-        when(userRepository.findByUsername("rui"))
+        when(jwtService.getSubjectId("auth-token"))
+            .thenReturn(user.getId());
+        when(userRepository.findById(user.getId()))
             .thenReturn(Optional.of(user));
 
         User result = getAuthenticationService().getUserByAuth("auth-token");
 
         assertThat(result).isEqualTo(user);
 
-        verify(jwtService, times(1)).extractUsername("auth-token");
-        verify(userRepository, times(1)).findByUsername("rui");
+        verify(jwtService, times(1)).getSubjectId("auth-token");
+        verify(userRepository, times(1)).findById(user.getId());
         verifyNoMoreInteractions(jwtService, userRepository);
     }
 
     @Test
-    void itShouldThrowWhenAuthTokenIsNull() {
+    void itShouldThrowWhenUserNotFoundByExtractedId() {
+        var id = UUID.randomUUID();
+
         AuthenticationService service = getAuthenticationService();
-
-        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth(null));
-
-        verifyNoInteractions(jwtService, userRepository);
-    }
-
-    @Test
-    void itShouldThrowWhenAuthTokenIsBlank() {
-        AuthenticationService service = getAuthenticationService();
-
-        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("   "));
-
-        verifyNoInteractions(jwtService, userRepository);
-    }
-
-    @Test
-    void itShouldThrowWhenExtractedUsernameIsNull() {
-        AuthenticationService service = getAuthenticationService();
-        when(jwtService.extractUsername("auth-token")).thenReturn(null);
+        when(jwtService.getSubjectId("auth-token")).thenReturn(id);
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("auth-token"));
 
-        verify(jwtService, times(1)).extractUsername("auth-token");
-        verifyNoMoreInteractions(jwtService);
-        verifyNoInteractions(userRepository);
-    }
-
-    @Test
-    void itShouldThrowWhenExtractedUsernameIsBlank() {
-        AuthenticationService service = getAuthenticationService();
-        when(jwtService.extractUsername("auth-token")).thenReturn("   ");
-
-        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("auth-token"));
-
-        verify(jwtService, times(1)).extractUsername("auth-token");
-        verifyNoMoreInteractions(jwtService);
-        verifyNoInteractions(userRepository);
-    }
-
-    @Test
-    void itShouldThrowWhenUserNotFoundByExtractedUsername() {
-        AuthenticationService service = getAuthenticationService();
-        when(jwtService.extractUsername("auth-token")).thenReturn("rui");
-        when(userRepository.findByUsername("rui")).thenReturn(Optional.empty());
-
-        assertThrows(InvalidAccessException.class, () -> service.getUserByAuth("auth-token"));
-
-        verify(jwtService, times(1)).extractUsername("auth-token");
-        verify(userRepository, times(1)).findByUsername("rui");
+        verify(jwtService, times(1)).getSubjectId("auth-token");
+        verify(userRepository, times(1)).findById(id);
         verifyNoMoreInteractions(jwtService, userRepository);
     }
 

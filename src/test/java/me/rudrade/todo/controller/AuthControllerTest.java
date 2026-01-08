@@ -26,7 +26,7 @@ class AuthControllerTest extends ControllerIntegration {
 
     @Test
     void itShouldRefreshToken() {
-        getTestUser();
+        var user = getTestUser();
 
         var issuedAt = Calendar.getInstance();
         issuedAt.add(Calendar.SECOND, -30);
@@ -37,9 +37,10 @@ class AuthControllerTest extends ControllerIntegration {
 
         var token = JWT.create()
             .withIssuer("test-app")
-            .withClaim("username", getTestUser().getUsername())
+            .withClaim("username", user.getUsername())
             .withClaim("role", "test-role")
             .withClaim("refreshes", 3)
+            .withSubject(user.getId().toString())
             .withIssuedAt(iat)
             .withExpiresAt(eat)
             .sign(Algorithm.HMAC256("test123"));
