@@ -7,15 +7,19 @@ import java.util.UUID;
 
 import me.rudrade.todo.config.ControllerIntegration;
 import me.rudrade.todo.dto.Mapper;
+import me.rudrade.todo.dto.NewPasswordDto;
+import me.rudrade.todo.dto.PasswordResetDto;
 import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.dto.UserRequestDto;
 import me.rudrade.todo.dto.response.RequestListResponse;
 import me.rudrade.todo.dto.response.UsersResponse;
 import me.rudrade.todo.dto.types.UserSearchType;
+import me.rudrade.todo.model.PasswordRequest;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
+import me.rudrade.todo.repository.PasswordRequestRepository;
 import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
 import org.junit.jupiter.api.Test;
@@ -38,6 +42,7 @@ class UserControllerTest extends ControllerIntegration {
     @Autowired private MockMvcTester mvc;
     @Autowired private UserRequestRepository userRequestRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private PasswordRequestRepository passwordRequestRepository;
 
     @Test
     void itShouldCreateUserRequestWhenAdmin() throws Exception {
@@ -362,6 +367,94 @@ class UserControllerTest extends ControllerIntegration {
                 .usingRecursiveFieldByFieldElementComparatorIgnoringFields("dtCreated")
                 .containsExactlyInAnyOrder(Mapper.toRequestDto(request1), Mapper.toRequestDto(request2));
         });
+    }
+
+    @Test
+    void itShouldResendMail() {
+        var userRequest = new UserRequest();
+        userRequest.setDtCreated(LocalDateTime.now());
+        userRequest.setEmail("test-resend@test");
+        userRequest.setMailSent(false);
+        userRequest.setPassword("test");
+        userRequest.setRole(Role.ROLE_USER);
+        userRequest.setUsername("test-resend");
+        userRequestRepository.save(userRequest);
+
+        assertThat(mvc.patch().uri("/todo/api/users/requests/mail/"+userRequest.getId())
+            .headers(getAdminAuthHeader())
+        ).hasStatusOk();
+        
+        var dbRequest = userRequestRepository.findById(userRequest.getId());
+        assertThat(dbRequest.get().isMailSent()).isTrue();
+    }
+
+    @Test
+    void itShouldDeleteRequest() {
+        var userRequest = new UserRequest();
+        userRequest.setDtCreated(LocalDateTime.now());
+        userRequest.setEmail("test-delete@test");
+        userRequest.setPassword("test");
+        userRequest.setRole(Role.ROLE_USER);
+        userRequest.setUsername("test-delete");
+        userRequestRepository.save(userRequest);
+
+        assertThat(mvc.delete().uri("/todo/api/users/requests/"+userRequest.getId())
+            .headers(getAdminAuthHeader())
+        ).hasStatusOk();
+
+        var dbRequest = userRequestRepository.findById(userRequest.getId());
+        assertThat(dbRequest).isEmpty();
+    }
+
+    @Test
+    void itShouldResetPassword() throws Exception {
+        var user = new User();
+        user.setActive(true);
+        user.setEmail("reset-p@test");
+        user.setPassword("test");
+        user.setRole(Role.ROLE_USER);
+        user.setUsername("reset-p");
+        userRepository.save(user);
+
+        assertThat(mvc.post().uri("/todo/api/users/reset-password")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper().writeValueAsString(new PasswordResetDto(user.getUsername(), user.getEmail())))
+        ).hasStatusOk();
+
+        var lst = passwordRequestRepository.findAll();
+        assertThat(lst)
+            .isNotEmpty()
+            .map(passReq -> passReq.getUser().getId())
+            .containsExactlyInAnyOrder(user.getId());
+    }
+
+    @Test
+    void itShouldSetNewPassword() throws Exception {
+        var user = new User();
+        user.setActive(true);
+        user.setEmail("test-change@test");
+        user.setPassword(encoder.encode("test"));
+        user.setRole(Role.ROLE_USER);
+        user.setUsername("test-change");
+        userRepository.save(user);
+
+        var request = new PasswordRequest();
+        request.setDtCreated(LocalDateTime.now());
+        request.setMailSent(true);
+        request.setUser(user);
+        passwordRequestRepository.save(request);
+
+        assertThat(mvc.patch().uri("/todo/api/users/reset-password/"+request.getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(mapper().writeValueAsString(new NewPasswordDto("changed")))
+        ).hasStatusOk();
+
+        var dbUser = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(dbUser.getPassword()).isNotEqualTo(user.getPassword());
+        assertThat(encoder.matches("changed", dbUser.getPassword())).isTrue();
+
+        var dbRequest = passwordRequestRepository.findById(request.getId());
+        assertThat(dbRequest).isEmpty();
     }
 
 }

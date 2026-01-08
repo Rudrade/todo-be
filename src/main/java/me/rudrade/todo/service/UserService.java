@@ -13,6 +13,8 @@ import org.springframework.validation.annotation.Validated;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import me.rudrade.todo.dto.Mapper;
+import me.rudrade.todo.dto.NewPasswordDto;
+import me.rudrade.todo.dto.PasswordResetDto;
 import me.rudrade.todo.dto.RequestDto;
 import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserDto;
@@ -22,9 +24,11 @@ import me.rudrade.todo.exception.EntityAlreadyExistsException;
 import me.rudrade.todo.exception.InvalidAccessException;
 import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.exception.UnexpectedErrorException;
+import me.rudrade.todo.model.PasswordRequest;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
+import me.rudrade.todo.repository.PasswordRequestRepository;
 import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
 import me.rudrade.todo.util.ServiceUtil;
@@ -38,6 +42,7 @@ public class UserService extends ServiceUtil {
     private final UserRequestRepository userRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
+    private final PasswordRequestRepository passwordRequestRepository;
 
     public UserRequest createUser(@NotNull UserRequestDto request) {
         var user = Mapper.toUserRequest(request);
@@ -261,5 +266,42 @@ public class UserService extends ServiceUtil {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public void deleteUserRequest(@NotNull UUID id) {
         userRequestRepository.deleteById(id);
+    }
+
+    public void resetPassword(@NotNull PasswordResetDto body) {
+        // Validate if one of the values is passed
+        if (body.getUsername() == null && body.getEmail() == null)
+            throw new InvalidDataException("A valid username or email must be provided");
+
+        // Find user by either username or email
+        var optUser = userRepository.findActiveByUsernameOrEmail(body.getUsername(), body.getEmail());
+        if (!optUser.isEmpty()) {
+            // If found, register request and send email
+            var request = new PasswordRequest();
+            request.setUser(optUser.getFirst());
+            request.setDtCreated(LocalDateTime.now());
+            passwordRequestRepository.save(request);
+
+            mailService.sendPasswordReset(request);
+        }
+
+    }
+
+    public void setNewPassword(@NotNull UUID id, @NotNull NewPasswordDto body) {
+        // Validate body
+        if (body.getPassword() == null || body.getPassword().isBlank()) {
+            throw new InvalidDataException("Password must be filled.");
+        }
+
+        // Find the request
+        var request = passwordRequestRepository.findById(id).orElseThrow(() -> new InvalidDataException("Password request not found."));
+
+        // Set new password
+        var user = request.getUser();
+        user.setPassword(passwordEncoder.encode(body.getPassword()));
+        userRepository.save(user);
+
+        // Delete the pending request
+        passwordRequestRepository.deleteById(id);
     }
 }
