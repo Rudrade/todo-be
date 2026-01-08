@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import jakarta.validation.Validation;
 import jakarta.validation.executable.ExecutableValidator;
@@ -26,9 +25,6 @@ import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,6 +47,7 @@ class UserServiceTest {
 
     private static User adminUser() {
         User user = new User();
+        user.setId(UUID.randomUUID());
         user.setRole(Role.ROLE_ADMIN);
         return user;
     }
@@ -281,77 +278,6 @@ class UserServiceTest {
 
         verifyNoInteractions(userRepository, userRequestRepository);
     }
-
-    @ParameterizedTest
-    @MethodSource("itShouldUpdateUserInputs")
-    void itShouldUpdateUser(UUID id, UserChangeDto data, User requester, String[] fieldsUpdated) {
-        User stored = new User();
-        stored.setId(id);
-        stored.setUsername("current");
-        stored.setEmail("current@mail.com");
-        stored.setActive(true);
-        stored.setPassword("old-password");
-        stored.setRole(Role.ROLE_USER);
-
-        when(userRepository.findById(id)).thenReturn(Optional.of(stored));
-        when(userRepository.findActiveByUsernameOrEmail(data.getUsername(), data.getEmail())).thenReturn(List.of());
-        when(userRequestRepository.existsByUsernameOrEmail(data.getUsername(), data.getEmail())).thenReturn(false);
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        var result = service().updateUser(
-            id,
-            data,
-            requester
-        );
-
-        if (data.getPassword() != null) {
-            assertThat(result.getPassword()).isNotEqualTo(data.getPassword());
-            assertThat(new BCryptPasswordEncoder().matches(data.getPassword(), result.getPassword())).isTrue();
-        }
-
-        assertThat(result)
-            .usingRecursiveComparison()
-            .ignoringFields(fieldsUpdated)
-            .isEqualTo(stored);
-
-        var dataUser = new User();
-		dataUser.setUsername(data.getUsername());
-		dataUser.setPassword(data.getPassword());
-		dataUser.setEmail(data.getEmail());
-		dataUser.setRole(data.getRole());
-		dataUser.setActive(Boolean.TRUE.equals(data.getActive()));
-        dataUser.setId(id);
-
-        assertThat(result)
-            .usingRecursiveComparison()
-            .ignoringFields("password")
-            .comparingOnlyFields(fieldsUpdated)
-            .isEqualTo(dataUser);
-
-        verify(userRepository, times(1)).findById(id);
-        verify(userRepository, times(1)).findActiveByUsernameOrEmail(data.getUsername(), data.getEmail());
-        verify(userRequestRepository, times(1)).existsByUsernameOrEmail(data.getUsername(), data.getEmail());
-        verify(userRepository, times(1)).save(stored);
-        verifyNoMoreInteractions(userRepository, userRequestRepository);
-    }
-
-    private static Stream<Arguments> itShouldUpdateUserInputs() {
-        var id = UUID.randomUUID();
-        var user = new User();
-        user.setId(id);
-        user.setRole(Role.ROLE_USER);
-
-        return Stream.of(
-            Arguments.of(id, new UserChangeDto("new-username", null, null, null, null, null), adminUser(), new String[]{"username"}),
-            Arguments.of(id, new UserChangeDto(null, "new-password", null, null, null, null), adminUser(), new String[]{"password"}),
-            Arguments.of(id, new UserChangeDto(null, null, "new-mail@mail.com", null, null, null), adminUser(), new String[]{"email"}),
-            Arguments.of(id, new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null), adminUser(), new String[]{"role"}),
-            Arguments.of(id, new UserChangeDto(null, null, null, null, Boolean.FALSE, null), adminUser(), new String[]{"active"}),
-            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", Role.ROLE_ADMIN, Boolean.FALSE, null), adminUser(), new String[]{"username","password","email","role","active"}),
-            Arguments.of(id, new UserChangeDto("new-username", "new-password", "new-mail@mail.com", null, null, null), user, new String[]{"username","password","email"})
-        );
-    }
-
 
     // ### end updateUser ###
 

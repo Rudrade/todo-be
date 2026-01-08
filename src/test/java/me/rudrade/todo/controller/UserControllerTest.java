@@ -103,7 +103,7 @@ class UserControllerTest extends ControllerIntegration {
 
         var updatedUser = new UserChangeDto(
             "changed-"+UUID.randomUUID(),
-            "changed-password",
+            null,
             UUID.randomUUID()+"@mail.com",
             Role.ROLE_ADMIN,
             Boolean.FALSE,
@@ -141,7 +141,7 @@ class UserControllerTest extends ControllerIntegration {
             UUID.randomUUID()+"@mail.com",
             null,
             null,
-        null);
+        "test-password");
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
@@ -202,7 +202,7 @@ class UserControllerTest extends ControllerIntegration {
 
         var updateData = new UserChangeDto(
             user.getUsername(),
-            "test",
+            null,
             user.getEmail(),
             user.getRole(),
             user.isActive(),

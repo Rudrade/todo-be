@@ -6,9 +6,11 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @Getter
+@EqualsAndHashCode
 public class TaskDto {
     private final UUID id;
     private final String title;
