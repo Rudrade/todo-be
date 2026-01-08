@@ -21,6 +21,7 @@ import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
+import me.rudrade.todo.repository.PasswordRequestRepository;
 import me.rudrade.todo.repository.UserRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
 
@@ -38,12 +39,13 @@ class UserServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private UserRequestRepository userRequestRepository;
     @Mock private MailService mailService;
+    @Mock private PasswordRequestRepository passwordRequestRepository;
 
     private UserService userService;
 
     @BeforeEach
     void setup() {
-        userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService);
+        userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService, passwordRequestRepository);
     }
 
     private static User adminUser() {

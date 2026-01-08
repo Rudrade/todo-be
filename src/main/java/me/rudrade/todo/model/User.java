@@ -61,6 +61,9 @@ public class User implements UserDetails {
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
 	private List<Tag> tags;
 
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
+	private List<PasswordRequest> passwordRequests;
+
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		if (this.role == null)

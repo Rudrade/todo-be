@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 
 import lombok.AllArgsConstructor;
 import me.rudrade.todo.dto.Mapper;
+import me.rudrade.todo.dto.NewPasswordDto;
+import me.rudrade.todo.dto.PasswordResetDto;
 import me.rudrade.todo.dto.UserChangeDto;
 import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.dto.UserRequestDto;
@@ -83,6 +85,16 @@ public class UserController {
     @DeleteMapping("/requests/{id}")
     public void deleteRequest(@PathVariable UUID id) {
         userService.deleteUserRequest(id);
+    }
+
+    @PostMapping("/reset-password")
+	public void resetPassword(@RequestBody PasswordResetDto body) {
+        userService.resetPassword(body);
+	}
+
+    @PatchMapping("/reset-password/{id}")
+    public void setNewPassword(@PathVariable UUID id, @RequestBody NewPasswordDto body) {
+        userService.setNewPassword(id, body);
     }
 
 }

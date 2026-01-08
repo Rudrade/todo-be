@@ -1,7 +1,10 @@
 package me.rudrade.todo.job;
 
+import me.rudrade.todo.model.PasswordRequest;
+import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
 import me.rudrade.todo.model.types.Role;
+import me.rudrade.todo.repository.PasswordRequestRepository;
 import me.rudrade.todo.repository.UserRequestRepository;
 import me.rudrade.todo.service.MailService;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +24,13 @@ class SendMissingConfirmationMailsJobTest {
 
     @Mock private UserRequestRepository userRequestRepository;
     @Mock private MailService mailService;
+    @Mock private PasswordRequestRepository passwordRequestRepository;
 
-    private SendMissingConfirmationMailsJob target;
+    private SendMissingMailsJob target;
 
     @BeforeEach
     void setup() {
-        target = new SendMissingConfirmationMailsJob(userRequestRepository, mailService);
+        target = new SendMissingMailsJob(userRequestRepository, mailService, passwordRequestRepository);
     }
 
     private UserRequest userRequest() {
@@ -39,6 +43,17 @@ class SendMissingConfirmationMailsJobTest {
         request.setRole(Role.ROLE_USER);
         request.setDtCreated(LocalDateTime.now());
         request.setMailSent(false);
+        return request;
+    }
+
+    private PasswordRequest passwordRequest() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+
+        var request = new PasswordRequest();
+        request.setDtCreated(LocalDateTime.now());
+        request.setId(UUID.randomUUID());
+        request.setUser(user);
         return request;
     }
 
@@ -58,10 +73,33 @@ class SendMissingConfirmationMailsJobTest {
         verify(mailService, times(1)).sendActivationMail(userRequest1);
         verify(mailService, times(1)).sendActivationMail(userRequest2);
         verifyNoMoreInteractions(mailService);
+
+        verify(passwordRequestRepository, times(1)).findAllByMailSentIsFalse();
+        verifyNoMoreInteractions(passwordRequestRepository);
     }
 
     @Test
-    void itShouldStopIfIsMissingConfiguration() {
+    void itShouldSendMissingPasswordRequests() {
+        var request1 = passwordRequest();
+        var request2 = passwordRequest();
+
+        when(passwordRequestRepository.findAllByMailSentIsFalse()).thenReturn(List.of(request1, request2));
+
+        target.job();
+
+        verify(userRequestRepository, times(1)).findAllByMailSentIsFalse();
+        verifyNoMoreInteractions(userRequestRepository);
+
+        verify(passwordRequestRepository, times(1)).findAllByMailSentIsFalse();
+        verifyNoMoreInteractions(passwordRequestRepository);
+
+        verify(mailService, times(1)).sendPasswordReset(request1);
+        verify(mailService, times(1)).sendPasswordReset(request2);
+        verifyNoMoreInteractions(mailService);
+    }
+
+    @Test
+    void itShouldStopIfIsMissingConfigurationOnActivation() {
         var userRequest1 = userRequest();
         var userRequest2 = userRequest();
 
@@ -82,7 +120,55 @@ class SendMissingConfirmationMailsJobTest {
     }
 
     @Test
-    void itShouldContinueIfExceptionIsThrown() {
+    void itShouldStopIfMissingConfigurationOnPassword() {
+        var request1 = passwordRequest();
+        var request2 = passwordRequest();
+
+        when(passwordRequestRepository.findAllByMailSentIsFalse()).thenReturn(List.of(request1, request2));
+
+        doThrow(new IllegalStateException())
+            .when(mailService)
+            .sendPasswordReset(request1);
+
+        target.job();
+
+        verify(userRequestRepository, times(1)).findAllByMailSentIsFalse();
+        verifyNoMoreInteractions(userRequestRepository);
+
+        verify(passwordRequestRepository, times(1)).findAllByMailSentIsFalse();
+        verifyNoMoreInteractions(passwordRequestRepository);
+
+        verify(mailService, times(1)).sendPasswordReset(request1);
+        verifyNoMoreInteractions(mailService);
+    }
+
+
+    @Test
+    void itShouldCointinueIfExceptionIsThrownOnPassword() {
+        var request1 = passwordRequest();
+        var request2 = passwordRequest();
+
+        when(passwordRequestRepository.findAllByMailSentIsFalse()).thenReturn(List.of(request1, request2));
+
+        doThrow(new NullPointerException())
+            .when(mailService)
+            .sendPasswordReset(request1);
+
+        target.job();
+
+        verify(userRequestRepository, times(1)).findAllByMailSentIsFalse();
+        verifyNoMoreInteractions(userRequestRepository);
+
+        verify(passwordRequestRepository, times(1)).findAllByMailSentIsFalse();
+        verifyNoMoreInteractions(passwordRequestRepository);
+
+        verify(mailService, times(1)).sendPasswordReset(request1);
+        verify(mailService, times(1)).sendPasswordReset(request2);
+        verifyNoMoreInteractions(mailService);
+    }
+
+    @Test
+    void itShouldContinueIfExceptionIsThrownOnActivation() {
         var userRequest1 = userRequest();
         var userRequest2 = userRequest();
 
