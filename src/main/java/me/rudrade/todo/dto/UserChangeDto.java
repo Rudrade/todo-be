@@ -5,6 +5,8 @@ import me.rudrade.todo.model.types.Role;
 
 import static me.rudrade.todo.util.ServiceUtil.trimString;
 
+import org.springframework.web.multipart.MultipartFile;
+
 @Getter
 public class UserChangeDto {
 
@@ -14,13 +16,15 @@ public class UserChangeDto {
     private final Role role;
     private final Boolean active;
     private final String oldPassword;
+    private final MultipartFile image;
 
-    public UserChangeDto(String username, String password, String email, Role  role, Boolean active, String oldPassword) {
+    public UserChangeDto(String username, String password, String email, Role  role, Boolean active, String oldPassword, MultipartFile image) {
         this.username = trimString(username);
         this.password = trimString(password);
         this.email = trimString(email);
         this.role = role;
         this.active = active;
         this.oldPassword = trimString(oldPassword);
+        this.image = image;
     }
 }

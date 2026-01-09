@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.NewPasswordDto;
 import me.rudrade.todo.dto.PasswordResetDto;
@@ -35,7 +35,7 @@ import me.rudrade.todo.util.ServiceUtil;
 
 @Service
 @Validated
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UserService extends ServiceUtil {
 
     private final UserRepository userRepository;
@@ -43,6 +43,7 @@ public class UserService extends ServiceUtil {
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
     private final PasswordRequestRepository passwordRequestRepository;
+    private final S3Service s3Service;
 
     public UserRequest createUser(@NotNull UserRequestDto request) {
         var user = Mapper.toUserRequest(request);
@@ -60,21 +61,30 @@ public class UserService extends ServiceUtil {
         return user;
     }
 
-    public User getById(
+    public UserDto getById(
         @NotNull(message = "User id must be provided.") UUID id,
         @NotNull User requester
     ) {
-        if (id.equals(requester.getId()))
-            return requester;
-
-        if (!Role.ROLE_ADMIN.equals(requester.getRole()))
-            throw new InvalidAccessException();
-        
-        return userRepository.findById(id)
+        User user = null;
+        if (id.equals(requester.getId())) {
+            user = requester;
+        } else {
+            if (!Role.ROLE_ADMIN.equals(requester.getRole()))
+                throw new InvalidAccessException();
+            
+            user = userRepository.findById(id)
             .orElseThrow(() -> new InvalidDataException("User not found."));
+        }
+
+        var dto = Mapper.toUserDto(user);
+        if (user.getImageVersion() != null) {
+            dto.setImageUrl(s3Service.getImagePath(user.getId(), user.getImageVersion()));
+        }
+
+        return dto;
     }
 
-    public User updateUser(
+    public UserDto updateUser(
         @NotNull(message = "User id must be provided.") UUID id,
         @NotNull UserChangeDto data,
         @NotNull User requester
@@ -115,8 +125,21 @@ public class UserService extends ServiceUtil {
             user.setActive(data.getActive());
         }
 
+        // Upload image
+        if (data.getImage() != null) {
+            var version = s3Service.uploadImage(data.getImage(), id);
+            user.setImageVersion(version);
+        }
+
         // Save resource
-        return userRepository.save(user);
+        userRepository.save(user);
+
+        var result = Mapper.toUserDto(user);
+        if (user.getImageVersion() != null) {
+            result.setImageUrl(s3Service.getImagePath(user.getId(), user.getImageVersion()));
+        }
+
+        return result;
     }
 
     private User validateUpdateAccess(@NotNull UUID id, @NotNull UserChangeDto data, @NotNull User requester) {
@@ -134,7 +157,7 @@ public class UserService extends ServiceUtil {
         }
 
         // If is own user, validate password
-        if (id.equals(requester.getId())) {
+        if (id.equals(requester.getId()) && !Role.ROLE_ADMIN.equals(requester.getRole())) {
             var matches = false;
             if (data.getOldPassword() != null) {
                 matches =  passwordEncoder.matches(data.getOldPassword(), user.getPassword());
@@ -204,7 +227,13 @@ public class UserService extends ServiceUtil {
         }
 
         return users.stream()
-            .map(Mapper::toUserDto)
+            .map(user -> {
+                var dto = Mapper.toUserDto(user);
+                if (user.getImageVersion() != null) {
+                    dto.setImageUrl(s3Service.getImagePath(user.getId(), user.getImageVersion()));
+                }
+                return dto;
+            })
             .toList();
     }
 

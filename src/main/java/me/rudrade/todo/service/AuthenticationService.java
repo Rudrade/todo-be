@@ -13,8 +13,6 @@ import me.rudrade.todo.dto.UserLoginDto;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.UserRepository;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
@@ -22,6 +20,7 @@ public class AuthenticationService {
 	private final UserRepository userRepository;
 	private final JwtService jwtService;
 	private final PasswordEncoder passwordEncoder;
+	private final S3Service s3Service;
 
 	@Value("${todo.app.jwt.allowedRefreshes}")
 	private String nrAllowedRefreshes;
@@ -32,17 +31,20 @@ public class AuthenticationService {
 			user.getPassword() == null || user.getPassword().isBlank())
 			throw new InvalidAccessException();
 
-	 	Optional<User>  optUser = userRepository.findByUsername(user.getUsername());
-		 if (optUser.isEmpty())
+	 	var oUser  = userRepository.findByUsername(user.getUsername()).orElseThrow(InvalidAccessException::new);
+
+		if (!passwordEncoder.matches(user.getPassword(), oUser.getPassword()))
 			 throw new InvalidAccessException();
 
-		 if (!passwordEncoder.matches(user.getPassword(), optUser.get().getPassword()))
+		 if (!oUser.isActive())
 			 throw new InvalidAccessException();
 
-		 if (!optUser.get().isActive())
-			 throw new InvalidAccessException();
+		 String imageUrl = null;
+		 if (oUser.getImageVersion() != null) {
+			imageUrl = s3Service.getImagePath(oUser.getId(), oUser.getImageVersion());
+		 }
 
-		return new LoginResponse(jwtService.generateToken(optUser.get()));
+		return new LoginResponse(jwtService.generateToken(oUser), imageUrl);
 	}
 
 	public String refreshToken(@NotBlank String authToken) {

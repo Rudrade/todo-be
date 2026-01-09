@@ -2,6 +2,7 @@ package me.rudrade.todo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.executable.ExecutableValidator;
 import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.UserChangeDto;
+import me.rudrade.todo.dto.UserDto;
 import me.rudrade.todo.dto.UserRequestDto;
 import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.exception.EntityAlreadyExistsException;
@@ -35,17 +37,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
-
+    
     @Mock private UserRepository userRepository;
     @Mock private UserRequestRepository userRequestRepository;
     @Mock private MailService mailService;
     @Mock private PasswordRequestRepository passwordRequestRepository;
+    @Mock private S3Service s3Service;
 
     private UserService userService;
 
     @BeforeEach
     void setup() {
-        userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService, passwordRequestRepository);
+        userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService, passwordRequestRepository, s3Service);
     }
 
     private static User adminUser() {
@@ -151,9 +154,13 @@ class UserServiceTest {
         expected.setId(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(expected));
 
-        User result = userService.getById(id, adminUser());
+        UserDto result = userService.getById(id, adminUser());
 
-        assertThat(result).isEqualTo(expected);
+        assertThat(result)
+            .usingRecursiveComparison()
+            .ignoringFields("imageUrl")
+            .isEqualTo(Mapper.toUserDto(expected));
+
         verify(userRepository, times(1)).findById(id);
         verifyNoInteractions(userRequestRepository);
     }
@@ -170,7 +177,7 @@ class UserServiceTest {
         var idViolations = validator.validateParameters(
             userService,
             method,
-            new Object[]{null, new UserChangeDto("new-user", null, null, null, null, null), adminUser()}
+            new Object[]{null, new UserChangeDto("new-user", null, null, null, null, null, null), adminUser()}
         );
         var dataViolations = validator.validateParameters(
             userService,
@@ -180,7 +187,7 @@ class UserServiceTest {
         var requesterViolations = validator.validateParameters(
             userService,
             method,
-            new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null, null), null}
+            new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null, null, null), null}
         );
 
         assertThat(idViolations).hasSize(1);
@@ -191,7 +198,7 @@ class UserServiceTest {
     @Test
     void itShouldThrowWhenNoFieldsProvided() {
         var id = UUID.randomUUID();
-        var data = new UserChangeDto(null, null, null, null, null, null);
+        var data = new UserChangeDto(null, null, null, null, null, null, null);
         var admin = adminUser();
 
         assertThrows(InvalidDataException.class, () -> userService.updateUser(id, data, admin));
@@ -202,7 +209,7 @@ class UserServiceTest {
     @Test
     void itShouldThrowWhenUpdatingNonExistingUser() {
         var id = UUID.randomUUID();
-        var data = new UserChangeDto("user", null, null, null, null, null);
+        var data = new UserChangeDto("user", null, null, null, null, null, null);
         var admin = adminUser();
 
         when(userRepository.findById(id)).thenReturn(Optional.empty());
@@ -226,7 +233,7 @@ class UserServiceTest {
         requester.setId(UUID.randomUUID());
         requester.setRole(Role.ROLE_USER);
 
-        var data = new UserChangeDto("new-user", null, null, null, null, null);
+        var data = new UserChangeDto("new-user", null, null, null, null, null, null);
 
         assertThrows(InvalidAccessException.class, () -> userService.updateUser(id, data, requester));
 
@@ -248,7 +255,7 @@ class UserServiceTest {
         when(userRepository.findActiveByUsernameOrEmail("new-user", "new@mail.com"))
             .thenReturn(List.of(user));
 
-        var data = new UserChangeDto("new-user", null, "new@mail.com", null, null, null);
+        var data = new UserChangeDto("new-user", null, "new@mail.com", null, null, null, null);
         var admin = adminUser();
 
         assertThrows(EntityAlreadyExistsException.class, () -> userService.updateUser(id, data, admin));
@@ -265,7 +272,7 @@ class UserServiceTest {
         user.setRole(Role.ROLE_USER);
 
         var id = UUID.randomUUID();
-        var data = new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null);
+        var data = new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null, null);
 
         assertThrows(InvalidAccessException.class,  () -> userService.updateUser(id, data, user));
 
@@ -278,7 +285,7 @@ class UserServiceTest {
         user.setRole(Role.ROLE_USER);
 
         var id = UUID.randomUUID();
-        var data = new UserChangeDto(null, null, null, null, Boolean.FALSE, null);
+        var data = new UserChangeDto(null, null, null, null, Boolean.FALSE, null, null);
 
         assertThrows(InvalidAccessException.class,  () -> userService.updateUser(id, data, user));
 
@@ -414,11 +421,11 @@ class UserServiceTest {
         assertThat(result)
             .isNotNull()
             .satisfies(user -> {
-               assertThat(user.id()).isNotNull().isNotEqualTo(request.getId());
-               assertThat(user.username()).isEqualTo(request.getUsername());
-               assertThat(user.email()).isEqualTo(request.getEmail());
-               assertThat(user.role()).isEqualTo(request.getRole());
-               assertThat(user.active()).isTrue();
+               assertThat(user.getId()).isNotNull().isNotEqualTo(request.getId());
+               assertThat(user.getUsername()).isEqualTo(request.getUsername());
+               assertThat(user.getEmail()).isEqualTo(request.getEmail());
+               assertThat(user.getRole()).isEqualTo(request.getRole());
+               assertThat(user.isActive()).isTrue();
             });
 
         assertThat(argCaptor.getValue())

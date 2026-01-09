@@ -1,13 +1,13 @@
 package me.rudrade.todo.controller;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.UUID;
 
 import org.springframework.web.bind.annotation.*;
 
 import lombok.AllArgsConstructor;
-import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.NewPasswordDto;
 import me.rudrade.todo.dto.PasswordResetDto;
 import me.rudrade.todo.dto.UserChangeDto;
@@ -39,19 +39,17 @@ public class UserController {
         @PathVariable UUID id
     ) {
         var requester = authenticationService.getUserByAuth(authToken);
-        return Mapper.toUserDto(userService.getById(id, requester));
+        return userService.getById(id, requester);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE,MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     public UserDto updateUser(
         @RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
         @PathVariable UUID id,
-        @RequestBody UserChangeDto body
+        @ModelAttribute UserChangeDto body
     ) {
         var requester = authenticationService.getUserByAuth(authToken);
-        var result = userService.updateUser(id, body, requester);
-
-        return Mapper.toUserDto(result);
+        return userService.updateUser(id, body, requester);
     }
 
     @GetMapping()

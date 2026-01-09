@@ -16,8 +16,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.util.MultiValueMap;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -95,6 +100,25 @@ public class ControllerIntegration extends SqlIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + adminAuthToken);
         return headers;
+    }
+
+    public MultiValueMap<String, String> convertToFormData(Object obj) {
+        
+        try {
+            Map<String, String> map = new HashMap<>();
+            var fields = obj.getClass().getDeclaredFields();
+            for (var field : fields) {
+                if (!field.canAccess(obj))
+                    field.setAccessible(true);
+
+                var value = field.get(obj);
+                map.put(field.getName(), value == null ? null : value.toString());
+            }
+            return MultiValueMap.fromSingleValue(map);
+        } catch (IllegalAccessException e) {
+            fail(e);
+            return null;
+        }
     }
 
 }

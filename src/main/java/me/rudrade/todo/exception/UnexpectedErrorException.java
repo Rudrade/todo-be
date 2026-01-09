@@ -6,4 +6,8 @@ public class UnexpectedErrorException extends RuntimeException {
         super(message);
     }
 
+    public UnexpectedErrorException(Throwable e) {
+        super(e);
+    }
+
 }
