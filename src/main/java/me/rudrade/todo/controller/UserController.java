@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.*;
 
 import lombok.AllArgsConstructor;
-import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.NewPasswordDto;
 import me.rudrade.todo.dto.PasswordResetDto;
 import me.rudrade.todo.dto.UserChangeDto;
@@ -49,9 +48,7 @@ public class UserController {
         @ModelAttribute UserChangeDto body
     ) {
         var requester = authenticationService.getUserByAuth(authToken);
-        var result = userService.updateUser(id, body, requester);
-
-        return Mapper.toUserDto(result);
+        return userService.updateUser(id, body, requester);
     }
 
     @GetMapping()

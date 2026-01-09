@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -46,9 +45,6 @@ public class UserService extends ServiceUtil {
     private final PasswordRequestRepository passwordRequestRepository;
     private final S3Service s3Service;
 
-    @Value("${todo.app.user.image.baseUrl}")
-    private String imageBaseUrl;
-
     public UserRequest createUser(@NotNull UserRequestDto request) {
         var user = Mapper.toUserRequest(request);
         user.setDtCreated(LocalDateTime.now());
@@ -81,14 +77,14 @@ public class UserService extends ServiceUtil {
         }
 
         var dto = Mapper.toUserDto(user);
-        if (user.isContainsImage()) {
-            dto.setImageUrl(imageBaseUrl + user.getId() + S3Service.ALLOWED_EXTENSION);
+        if (user.getImageVersion() != null) {
+            dto.setImageUrl(s3Service.getImagePath(user.getId(), user.getImageVersion()));
         }
 
         return dto;
     }
 
-    public User updateUser(
+    public UserDto updateUser(
         @NotNull(message = "User id must be provided.") UUID id,
         @NotNull UserChangeDto data,
         @NotNull User requester
@@ -131,14 +127,19 @@ public class UserService extends ServiceUtil {
 
         // Upload image
         if (data.getImage() != null) {
-            s3Service.uploadImage(data.getImage(), id);
-            user.setContainsImage(true);
+            var version = s3Service.uploadImage(data.getImage(), id);
+            user.setImageVersion(version);
         }
 
         // Save resource
         userRepository.save(user);
 
-        return user;
+        var result = Mapper.toUserDto(user);
+        if (user.getImageVersion() != null) {
+            result.setImageUrl(s3Service.getImagePath(user.getId(), user.getImageVersion()));
+        }
+
+        return result;
     }
 
     private User validateUpdateAccess(@NotNull UUID id, @NotNull UserChangeDto data, @NotNull User requester) {
@@ -156,7 +157,7 @@ public class UserService extends ServiceUtil {
         }
 
         // If is own user, validate password
-        if (id.equals(requester.getId())) {
+        if (id.equals(requester.getId()) && !Role.ROLE_ADMIN.equals(requester.getRole())) {
             var matches = false;
             if (data.getOldPassword() != null) {
                 matches =  passwordEncoder.matches(data.getOldPassword(), user.getPassword());
@@ -228,8 +229,8 @@ public class UserService extends ServiceUtil {
         return users.stream()
             .map(user -> {
                 var dto = Mapper.toUserDto(user);
-                if (user.isContainsImage()) {
-                    dto.setImageUrl(imageBaseUrl + user.getId() + S3Service.ALLOWED_EXTENSION);
+                if (user.getImageVersion() != null) {
+                    dto.setImageUrl(s3Service.getImagePath(user.getId(), user.getImageVersion()));
                 }
                 return dto;
             })

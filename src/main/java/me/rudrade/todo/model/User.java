@@ -52,8 +52,8 @@ public class User implements UserDetails {
 	@Column(name = "is_active", nullable = false)
 	private boolean active;
 
-	@Column(name = "contains_image", nullable = false)
-	private boolean containsImage;
+	@Column(name = "image_version")
+	private String imageVersion;
 
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
 	private List<Task> tasks;
