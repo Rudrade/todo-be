@@ -1,3 +1,3 @@
-insert into user(id, username, password, email, role, is_active, contains_image) values (uuid_to_bin(uuid()), 'test-user', '', 'test-mail@test', 'ROLE_USER', true, false);
-insert into user(id, username, password, email, role, is_active, contains_image) values (uuid_to_bin(uuid()), 'test-user-2', '', 'test-mail-2@test', 'ROLE_USER', true, false);
-insert into user(id, username, password, email, role, is_active, contains_image) values (uuid_to_bin(uuid()), 'test-user-3', '', 'test-mail-3@test', 'ROLE_USER', false, false);
+insert into user(id, username, password, email, role, is_active) values (uuid_to_bin(uuid()), 'test-user', '', 'test-mail@test', 'ROLE_USER', true);
+insert into user(id, username, password, email, role, is_active) values (uuid_to_bin(uuid()), 'test-user-2', '', 'test-mail-2@test', 'ROLE_USER', true);
+insert into user(id, username, password, email, role, is_active) values (uuid_to_bin(uuid()), 'test-user-3', '', 'test-mail-3@test', 'ROLE_USER', false);

@@ -152,7 +152,6 @@ class UserServiceTest {
         UUID id = UUID.randomUUID();
         User expected = new User();
         expected.setId(id);
-        expected.setContainsImage(true);
         when(userRepository.findById(id)).thenReturn(Optional.of(expected));
 
         UserDto result = userService.getById(id, adminUser());
@@ -162,7 +161,6 @@ class UserServiceTest {
             .ignoringFields("imageUrl")
             .isEqualTo(Mapper.toUserDto(expected));
 
-        assertThat(result.getImageUrl()).endsWith(id+".webp");
         verify(userRepository, times(1)).findById(id);
         verifyNoInteractions(userRequestRepository);
     }

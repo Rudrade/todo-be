@@ -1,5 +1,6 @@
 package me.rudrade.todo.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.PutObjectResult;
 
 import me.rudrade.todo.exception.InvalidDataException;
 
@@ -38,7 +40,7 @@ class S3ServiceTest {
         var id = UUID.randomUUID();
 
         when(image.getSize()).thenReturn(1048576L);
-        when(image.getName()).thenReturn("image.webp");
+        when(image.getOriginalFilename()).thenReturn("image.webp");
         when(image.getBytes()).thenReturn(new byte[1024]);
 
         try (
@@ -48,7 +50,13 @@ class S3ServiceTest {
             var s3 = mock(AmazonS3.class);
             s3Builder.when(AmazonS3ClientBuilder::defaultClient).thenReturn(s3);
 
-            target.uploadImage(image, id);
+            var s3Result = new PutObjectResult();
+            s3Result.setVersionId("v123b");
+            when(s3.putObject(eq(BUCKET_NAME), eq(id+".webp"), any(File.class))).thenReturn(s3Result);
+
+            String result = target.uploadImage(image, id);
+
+            assertThat(result).isEqualTo(s3Result.getVersionId());
 
             s3Builder.verify(AmazonS3ClientBuilder::defaultClient, times(1));
             s3Builder.verifyNoMoreInteractions();

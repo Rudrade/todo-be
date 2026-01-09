@@ -117,7 +117,7 @@ class UserControllerTest extends ControllerIntegration {
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
                 .headers(getAdminAuthHeader())
-                .contentType(MEDIA_TYPE_FORM_DATA)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .formFields(convertToFormData(updatedUser))
         ).hasStatusOk()
         .bodyJson()
@@ -151,7 +151,7 @@ class UserControllerTest extends ControllerIntegration {
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
                 .headers(getAuthHeader(user.getUsername(), "test-password"))
-                .contentType(MEDIA_TYPE_FORM_DATA)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .formFields(convertToFormData(updatedUser))
         ).hasStatusOk()
         .bodyJson()
@@ -217,7 +217,7 @@ class UserControllerTest extends ControllerIntegration {
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
                 .headers(getAdminAuthHeader())
-                .contentType(MEDIA_TYPE_FORM_DATA)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .formFields(convertToFormData(updateData))
         ).hasStatusOk();
 
@@ -249,7 +249,7 @@ class UserControllerTest extends ControllerIntegration {
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
             .headers(getAuthHeader())
-            .contentType(MEDIA_TYPE_FORM_DATA)
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             .formFields(convertToFormData(updateData))
         ).hasStatus(HttpStatus.FORBIDDEN);
         

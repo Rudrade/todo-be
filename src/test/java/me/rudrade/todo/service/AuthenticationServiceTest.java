@@ -31,6 +31,7 @@ class AuthenticationServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private JwtService jwtService;
+    @Mock private S3Service s3Service;
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -306,7 +307,7 @@ class AuthenticationServiceTest {
 
     private AuthenticationService getAuthenticationService() {
         if (authenticationService == null) {
-            authenticationService = new AuthenticationService(userRepository, jwtService, passwordEncoder);
+            authenticationService = new AuthenticationService(userRepository, jwtService, passwordEncoder, s3Service);
             ReflectionTestUtils.setField(authenticationService, "nrAllowedRefreshes", "5");
             ReflectionTestUtils.setField(jwtService, "secretKey", "test123");
             ReflectionTestUtils.setField(jwtService, "jwtExpiration", 6000L);

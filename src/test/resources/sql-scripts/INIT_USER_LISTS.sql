@@ -1,8 +1,8 @@
 -- User
-INSERT INTO user (id, username, password, role, email, is_active, contains_image) VALUES (UUID_TO_BIN(UUID()), 'valid-user', '', 'ROLE_USER', 'test@mail.com', true, false)
+INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_TO_BIN(UUID()), 'valid-user', '', 'ROLE_USER', 'test@mail.com', true)
 ON DUPLICATE KEY UPDATE id=id;
 
-INSERT INTO user (id, username, password, role, email, is_active, contains_image) VALUES (UUID_TO_BIN(UUID()), 'second-user', '', 'ROLE_USER', 'test-2@mail.com', true, false)
+INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_TO_BIN(UUID()), 'second-user', '', 'ROLE_USER', 'test-2@mail.com', true)
 ON DUPLICATE KEY UPDATE id=id;
 
 -- User Lists

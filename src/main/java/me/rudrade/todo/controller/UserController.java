@@ -1,6 +1,7 @@
 package me.rudrade.todo.controller;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.UUID;
 
@@ -41,7 +42,7 @@ public class UserController {
         return userService.getById(id, requester);
     }
 
-    @PatchMapping("/{id}")
+    @PatchMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE,MediaType.APPLICATION_FORM_URLENCODED_VALUE})
     public UserDto updateUser(
         @RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
         @PathVariable UUID id,

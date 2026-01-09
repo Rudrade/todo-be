@@ -102,7 +102,6 @@ public class ControllerIntegration extends SqlIntegrationTest {
         return headers;
     }
 
-    public static final String MEDIA_TYPE_FORM_DATA = "application/x-www-form-urlencoded";
     public MultiValueMap<String, String> convertToFormData(Object obj) {
         
         try {

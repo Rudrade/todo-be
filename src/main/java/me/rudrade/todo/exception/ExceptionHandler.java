@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.transaction.TransactionSystemException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -83,6 +84,11 @@ public class ExceptionHandler {
 	@org.springframework.web.bind.annotation.ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Error> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
 		return new ResponseEntity<>(new Error("Invalid argument", Set.of(ex.getName())), HttpStatus.BAD_REQUEST); 
+    }
+
+	@org.springframework.web.bind.annotation.ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Error> handleHttpMediaTypeNotSupportedException(HttpMediaTypeNotSupportedException ex) {
+		return new ResponseEntity<>(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
 	

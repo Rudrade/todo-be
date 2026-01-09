@@ -53,7 +53,7 @@ class AuthControllerTest extends ControllerIntegration {
             .hasStatusOk()
             .bodyJson()
             .convertTo(LoginResponse.class)
-            .hasNoNullFieldsOrProperties();
+            .satisfies(res -> assertThat(res.token()).isNotBlank());
     }
 
     @Test
