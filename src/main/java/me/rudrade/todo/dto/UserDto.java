@@ -2,8 +2,16 @@ package me.rudrade.todo.dto;
 
 import java.util.UUID;
 
+import lombok.Data;
 import me.rudrade.todo.model.types.Role;
 
-public record UserDto(UUID id, String username, String email, Role role, boolean active) {
+@Data
+public class UserDto {
+    private final UUID id;
+    private final String username;
+    private final String email;
+    private final Role role;
+    private final boolean active;
+    private String imageUrl;
 }
 

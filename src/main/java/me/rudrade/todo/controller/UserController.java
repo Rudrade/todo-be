@@ -39,14 +39,14 @@ public class UserController {
         @PathVariable UUID id
     ) {
         var requester = authenticationService.getUserByAuth(authToken);
-        return Mapper.toUserDto(userService.getById(id, requester));
+        return userService.getById(id, requester);
     }
 
     @PatchMapping("/{id}")
     public UserDto updateUser(
         @RequestHeader(HttpHeaders.AUTHORIZATION) String authToken,
         @PathVariable UUID id,
-        @RequestBody UserChangeDto body
+        @ModelAttribute UserChangeDto body
     ) {
         var requester = authenticationService.getUserByAuth(authToken);
         var result = userService.updateUser(id, body, requester);

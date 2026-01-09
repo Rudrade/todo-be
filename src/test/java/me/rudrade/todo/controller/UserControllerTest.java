@@ -81,11 +81,11 @@ class UserControllerTest extends ControllerIntegration {
         .bodyJson()
         .convertTo(UserDto.class)
         .satisfies(dto -> {
-            assertThat(dto.id()).isEqualTo(existing.getId());
-            assertThat(dto.username()).isEqualTo(existing.getUsername());
-            assertThat(dto.email()).isEqualTo(existing.getEmail());
-            assertThat(dto.role()).isEqualTo(existing.getRole());
-            assertThat(dto.active()).isEqualTo(existing.isActive());
+            assertThat(dto.getId()).isEqualTo(existing.getId());
+            assertThat(dto.getUsername()).isEqualTo(existing.getUsername());
+            assertThat(dto.getEmail()).isEqualTo(existing.getEmail());
+            assertThat(dto.getRole()).isEqualTo(existing.getRole());
+            assertThat(dto.isActive()).isEqualTo(existing.isActive());
         });
     }
 
@@ -97,7 +97,7 @@ class UserControllerTest extends ControllerIntegration {
     }
 
     @Test
-    void itShouldUpdateUserWhenAdmin() throws Exception {
+    void itShouldUpdateUserWhenAdmin() {
         var user = new User();
         user.setUsername("test-"+UUID.randomUUID());
         user.setPassword("test-password");
@@ -112,26 +112,26 @@ class UserControllerTest extends ControllerIntegration {
             UUID.randomUUID()+"@mail.com",
             Role.ROLE_ADMIN,
             Boolean.FALSE,
-        null);
+            null, null);
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
                 .headers(getAdminAuthHeader())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper().writeValueAsString(updatedUser))
+                .contentType(MEDIA_TYPE_FORM_DATA)
+                .formFields(convertToFormData(updatedUser))
         ).hasStatusOk()
         .bodyJson()
         .convertTo(UserDto.class)
         .satisfies(dto -> {
-            assertThat(dto.username()).isEqualTo(updatedUser.getUsername());
-            assertThat(dto.email()).isEqualTo(updatedUser.getEmail());
-            assertThat(dto.role()).isEqualTo(updatedUser.getRole());
-            assertThat(dto.active()).isEqualTo(updatedUser.getActive());
+            assertThat(dto.getUsername()).isEqualTo(updatedUser.getUsername());
+            assertThat(dto.getEmail()).isEqualTo(updatedUser.getEmail());
+            assertThat(dto.getRole()).isEqualTo(updatedUser.getRole());
+            assertThat(dto.isActive()).isEqualTo(updatedUser.getActive());
         });
     }
 
     @Test
-    void itShouldUpdateUserWhenIsOwnUser() throws Exception {
+    void itShouldUpdateUserWhenIsOwnUser() {
         var user = new User();
         user.setUsername("test-"+UUID.randomUUID());
         user.setPassword(encoder.encode("test-password"));
@@ -146,21 +146,21 @@ class UserControllerTest extends ControllerIntegration {
             UUID.randomUUID()+"@mail.com",
             null,
             null,
-        "test-password");
+            "test-password", null);
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
                 .headers(getAuthHeader(user.getUsername(), "test-password"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(mapper().writeValueAsString(updatedUser))
+                .contentType(MEDIA_TYPE_FORM_DATA)
+                .formFields(convertToFormData(updatedUser))
         ).hasStatusOk()
         .bodyJson()
         .convertTo(UserDto.class)
         .satisfies(dto -> {
-            assertThat(dto.username()).isEqualTo(updatedUser.getUsername());
-            assertThat(dto.email()).isEqualTo(updatedUser.getEmail());
-            assertThat(dto.role()).isEqualTo(user.getRole());
-            assertThat(dto.active()).isEqualTo(user.isActive());
+            assertThat(dto.getUsername()).isEqualTo(updatedUser.getUsername());
+            assertThat(dto.getEmail()).isEqualTo(updatedUser.getEmail());
+            assertThat(dto.getRole()).isEqualTo(user.getRole());
+            assertThat(dto.isActive()).isEqualTo(user.isActive());
         });
     }
 
@@ -191,12 +191,12 @@ class UserControllerTest extends ControllerIntegration {
 
         var list = mapper().readValue(response, new TypeReference<UsersResponse>() {}).users();
 
-        assertThat(list.stream().anyMatch(dto -> dto.username().equals(activeUser.getUsername()))).isTrue();
-        assertThat(list.stream().anyMatch(dto -> dto.username().equals(inactiveUser.getUsername()))).isTrue();
+        assertThat(list.stream().anyMatch(dto -> dto.getUsername().equals(activeUser.getUsername()))).isTrue();
+        assertThat(list.stream().anyMatch(dto -> dto.getUsername().equals(inactiveUser.getUsername()))).isTrue();
     }
 
     @Test
-    void itShouldSaveUserWithoutChangingValues() throws Exception {
+    void itShouldSaveUserWithoutChangingValues() {
         var user = new User();
         user.setActive(true);
         user.setUsername(UUID.randomUUID().toString());
@@ -211,14 +211,14 @@ class UserControllerTest extends ControllerIntegration {
             user.getEmail(),
             user.getRole(),
             user.isActive(),
-            null
+            null, null
         );
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
                 .headers(getAdminAuthHeader())
-                .content(mapper().writeValueAsString(updateData))
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MEDIA_TYPE_FORM_DATA)
+                .formFields(convertToFormData(updateData))
         ).hasStatusOk();
 
         var savedUser = userRepository.findById(user.getId());
@@ -233,7 +233,7 @@ class UserControllerTest extends ControllerIntegration {
     }
 
     @Test
-    void itShouldThrowErrorWhenUserTryingToUpdateAnother() throws Exception {
+    void itShouldThrowErrorWhenUserTryingToUpdateAnother() {
         var user = createUser();
         userRepository.save(user);
 
@@ -243,14 +243,14 @@ class UserControllerTest extends ControllerIntegration {
             null,
             null,
             null,
-            null
+            null, null
         );
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
             .headers(getAuthHeader())
-            .content(mapper().writeValueAsString(updateData))
-            .contentType(MediaType.APPLICATION_JSON)
+            .contentType(MEDIA_TYPE_FORM_DATA)
+            .formFields(convertToFormData(updateData))
         ).hasStatus(HttpStatus.FORBIDDEN);
         
     }
@@ -273,7 +273,7 @@ class UserControllerTest extends ControllerIntegration {
             .getContentAsString();
 
         var list = mapper().readValue(response, new TypeReference<UsersResponse>() {}).users();
-        assertThat(list).isNotEmpty().allSatisfy(dto -> assertThat(dto.active()).isTrue());
+        assertThat(list).isNotEmpty().allSatisfy(dto -> assertThat(dto.isActive()).isTrue());
     }
 
     @Test
@@ -295,7 +295,7 @@ class UserControllerTest extends ControllerIntegration {
             .getContentAsString();
 
         var list = mapper().readValue(response, new TypeReference<UsersResponse>() {}).users();
-        assertThat(list).isNotEmpty().allSatisfy(dto -> assertThat(dto.username()).containsIgnoringCase("search-username"));
+        assertThat(list).isNotEmpty().allSatisfy(dto -> assertThat(dto.getUsername()).containsIgnoringCase("search-username"));
     }
 
     @Test

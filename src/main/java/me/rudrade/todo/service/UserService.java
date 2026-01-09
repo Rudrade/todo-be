@@ -5,13 +5,14 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.NewPasswordDto;
 import me.rudrade.todo.dto.PasswordResetDto;
@@ -35,7 +36,7 @@ import me.rudrade.todo.util.ServiceUtil;
 
 @Service
 @Validated
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UserService extends ServiceUtil {
 
     private final UserRepository userRepository;
@@ -43,6 +44,10 @@ public class UserService extends ServiceUtil {
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
     private final PasswordRequestRepository passwordRequestRepository;
+    private final S3Service s3Service;
+
+    @Value("${todo.app.user.image.baseUrl}")
+    private String imageBaseUrl;
 
     public UserRequest createUser(@NotNull UserRequestDto request) {
         var user = Mapper.toUserRequest(request);
@@ -60,18 +65,27 @@ public class UserService extends ServiceUtil {
         return user;
     }
 
-    public User getById(
+    public UserDto getById(
         @NotNull(message = "User id must be provided.") UUID id,
         @NotNull User requester
     ) {
-        if (id.equals(requester.getId()))
-            return requester;
-
-        if (!Role.ROLE_ADMIN.equals(requester.getRole()))
-            throw new InvalidAccessException();
-        
-        return userRepository.findById(id)
+        User user = null;
+        if (id.equals(requester.getId())) {
+            user = requester;
+        } else {
+            if (!Role.ROLE_ADMIN.equals(requester.getRole()))
+                throw new InvalidAccessException();
+            
+            user = userRepository.findById(id)
             .orElseThrow(() -> new InvalidDataException("User not found."));
+        }
+
+        var dto = Mapper.toUserDto(user);
+        if (user.isContainsImage()) {
+            dto.setImageUrl(imageBaseUrl + user.getId() + S3Service.ALLOWED_EXTENSION);
+        }
+
+        return dto;
     }
 
     public User updateUser(
@@ -115,8 +129,16 @@ public class UserService extends ServiceUtil {
             user.setActive(data.getActive());
         }
 
+        // Upload image
+        if (data.getImage() != null) {
+            s3Service.uploadImage(data.getImage(), id);
+            user.setContainsImage(true);
+        }
+
         // Save resource
-        return userRepository.save(user);
+        userRepository.save(user);
+
+        return user;
     }
 
     private User validateUpdateAccess(@NotNull UUID id, @NotNull UserChangeDto data, @NotNull User requester) {
@@ -204,7 +226,13 @@ public class UserService extends ServiceUtil {
         }
 
         return users.stream()
-            .map(Mapper::toUserDto)
+            .map(user -> {
+                var dto = Mapper.toUserDto(user);
+                if (user.isContainsImage()) {
+                    dto.setImageUrl(imageBaseUrl + user.getId() + S3Service.ALLOWED_EXTENSION);
+                }
+                return dto;
+            })
             .toList();
     }
 
