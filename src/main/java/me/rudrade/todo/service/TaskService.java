@@ -12,39 +12,37 @@ import me.rudrade.todo.model.Tag;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserList;
 
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import lombok.RequiredArgsConstructor;
 import me.rudrade.todo.dto.Mapper;
 import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.exception.InvalidAccessException;
 import me.rudrade.todo.exception.InvalidDataException;
-import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.Task;
 import me.rudrade.todo.repository.TaskRepository;
 import me.rudrade.todo.util.ServiceUtil;
 import me.rudrade.todo.dto.filter.TaskListFilter.Filter;
 
 @Service
+@RequiredArgsConstructor
 public class TaskService extends ServiceUtil {
 
 	private final UserListService userListService;
 	private final TaskRepository repository;
 	private final TagService tagService;
-
-	public TaskService(UserListService userListService, TaskRepository repository, TagService tagService) {
-		this.userListService = userListService;
-		this.repository = repository;
-		this.tagService = tagService;
-	}
+	private final MessageSource messageSource;
 
 	public TaskDto saveTask(TaskDto input, User user) {
 
 		if (input.getId() != null) {
 			Optional<Task> optTask = repository.findByIdAndUserId(input.getId(), user.getId());
 			if (optTask.isEmpty()) {
-				throw new TaskNotFoundException();
+				throw new InvalidDataException(messageSource.getMessage("task.missing", null, user.getLocale()));
 			}
 		}
 
@@ -76,6 +74,7 @@ public class TaskService extends ServiceUtil {
 		return Mapper.toTaskDto(task);
 	}
 	
+	@Transactional(readOnly = true)
 	public TaskListResponse getAll(TaskListFilter filter) {
 		validateFilter(filter);
 
@@ -115,17 +114,17 @@ public class TaskService extends ServiceUtil {
 			Filter.LIST.equals(filter.filter()) ||
 			Filter.TAG.equals(filter.filter())
 		)) {
-			throw new InvalidDataException("A search term must be provided for the selected filter.");
+			throw new InvalidDataException(messageSource.getMessage("searchTerm.missing", null, filter.user().getLocale()));
 		}
 	}
 	
 	public TaskDto getById(UUID id, User user) {
 		if (id == null || user == null || user.getId() == null)
-			throw new TaskNotFoundException();
+			throw new InvalidAccessException();
 
 		Optional<Task> optTask = repository.findByIdAndUserId(id, user.getId());
 		if (optTask.isEmpty()) {
-			throw new TaskNotFoundException();
+			throw new InvalidDataException(messageSource.getMessage("task.missing", null, user.getLocale()));
 		}
 		
 		return Mapper.toTaskDto(optTask.get());
@@ -133,11 +132,11 @@ public class TaskService extends ServiceUtil {
 	
 	public void deleteById(UUID id, User user) {
 		if (id == null || user == null || user.getId() == null)
-			throw new TaskNotFoundException();
+			throw new InvalidAccessException();
 
 		Optional<Task> optTask = repository.findByIdAndUserId(id, user.getId());
 		if (optTask.isEmpty()) {
-			throw new TaskNotFoundException();
+			throw new InvalidDataException(messageSource.getMessage("task.missing", null, user.getLocale()));
 		}
 		
 		repository.deleteById(id);

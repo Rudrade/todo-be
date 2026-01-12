@@ -4,7 +4,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
+import org.springframework.context.MessageSource;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ import me.rudrade.todo.exception.UnexpectedErrorException;
 import me.rudrade.todo.model.PasswordRequest;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
+import me.rudrade.todo.model.types.Language;
 import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.PasswordRequestRepository;
 import me.rudrade.todo.repository.UserRepository;
@@ -44,13 +47,14 @@ public class UserService extends ServiceUtil {
     private final MailService mailService;
     private final PasswordRequestRepository passwordRequestRepository;
     private final S3Service s3Service;
+    private final MessageSource messageSource;
 
-    public UserRequest createUser(@NotNull UserRequestDto request) {
+    public UserRequest createUser(@NotNull UserRequestDto request, Locale locale) {
         var user = Mapper.toUserRequest(request);
         user.setDtCreated(LocalDateTime.now());
         validate(user);
 
-        validateAlreadyExists(user.getUsername(), user.getEmail(), null);
+        validateAlreadyExists(user.getUsername(), user.getEmail(), null, locale);
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         
@@ -73,7 +77,7 @@ public class UserService extends ServiceUtil {
                 throw new InvalidAccessException();
             
             user = userRepository.findById(id)
-            .orElseThrow(() -> new InvalidDataException("User not found."));
+            .orElseThrow(() -> new InvalidDataException(messageSource.getMessage("user.missing", null, requester.getLocale())));
         }
 
         var dto = Mapper.toUserDto(user);
@@ -95,14 +99,14 @@ public class UserService extends ServiceUtil {
             data.getEmail() == null &&
             data.getRole() == null &&
             data.getActive() == null) {
-            throw new InvalidDataException("A property must be set to update the resource.");
+            throw new InvalidDataException(messageSource.getMessage("user.properties.missing", null, requester.getLocale()));
         }
 
         // Validate access
         var user = validateUpdateAccess(id, data, requester);
 
         // If changing username or email, validate if already doesn't exist on in DB
-        validateAlreadyExists(data.getUsername(), data.getEmail(), id);
+        validateAlreadyExists(data.getUsername(), data.getEmail(), id, requester.getLocale());
 
         // Update only setted values
         if (data.getUsername() != null) {
@@ -123,6 +127,12 @@ public class UserService extends ServiceUtil {
 
         if (data.getActive() != null) {
             user.setActive(data.getActive());
+        }
+
+        if (data.getLanguage() != null) {
+            user.setLanguage(data.getLanguage());
+        } else {
+            user.setLanguage(Language.EN);
         }
 
         // Upload image
@@ -149,7 +159,7 @@ public class UserService extends ServiceUtil {
 
         // Validate if resource exists
         User user = userRepository.findById(id)
-            .orElseThrow(() -> new InvalidDataException("User not found."));
+            .orElseThrow(() -> new InvalidDataException(messageSource.getMessage("user.missing", null, requester.getLocale())));
 
         // Validate if is either is admin or is own-user
         if (!Role.ROLE_ADMIN.equals(requester.getRole()) && !id.equals(requester.getId())) {
@@ -164,7 +174,7 @@ public class UserService extends ServiceUtil {
             }
 
             if (!matches) {
-                throw new InvalidDataException("Old password is invalid");
+                throw new InvalidDataException(messageSource.getMessage("user.oldPassword.invalid", null, requester.getLocale()));
             }
         }
 
@@ -176,7 +186,7 @@ public class UserService extends ServiceUtil {
         return user;
     }
 
-    private void validateAlreadyExists(String username, String email, UUID id) {
+    private void validateAlreadyExists(String username, String email, UUID id, Locale locale) {
         var existsUser = userRepository.findActiveByUsernameOrEmail(username, email);
         if (!existsUser.isEmpty()) {
             var allIdMatches = false;
@@ -185,13 +195,13 @@ public class UserService extends ServiceUtil {
                     .allMatch(user -> user.getId().equals(id));
             }
             if (!allIdMatches) {
-                throw new EntityAlreadyExistsException("User with the same username and/or email already exists.");
+                throw new EntityAlreadyExistsException(messageSource.getMessage("user.alreadyExists", null, locale));
             }
         }
 
         var existsInRequest = userRequestRepository.existsByUsernameOrEmail(username, email);
         if (existsInRequest)
-            throw new EntityAlreadyExistsException("User with the same username and/or email already exists. Please check your email for activation.");
+            throw new EntityAlreadyExistsException(messageSource.getMessage("user.alreadyExists", null, locale));
     }
 
     public List<UserDto> getAllUsers(
@@ -204,7 +214,7 @@ public class UserService extends ServiceUtil {
             throw new InvalidAccessException();
 
         if (searchType != null && (searchTerm == null || searchTerm.isBlank()))
-            throw new InvalidDataException("Search term must be provided when search type is set.");
+            throw new InvalidDataException(messageSource.getMessage("searchTerm.missing", null, requester.getLocale()));
 
         List<User> users = new ArrayList<>();
 
@@ -251,6 +261,7 @@ public class UserService extends ServiceUtil {
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
         user.setActive(true);
+        user.setLanguage(request.getLanguage());
 
         // Insert user
         userRepository.save(user);
@@ -265,10 +276,10 @@ public class UserService extends ServiceUtil {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public List<RequestDto> findAllRequest(String filterType, String filterValue) {
         Iterable<UserRequest> iterable;
-        if ("EMAIL".equals(filterType)) {
+        if (UserSearchType.EMAIL.name().equals(filterType)) {
             iterable = userRequestRepository.findAllByEmailContainingIgnoringCase(filterValue);
 
-        } else if ("USERNAME".equals(filterType)) {
+        } else if (UserSearchType.USERNAME.name().equals(filterType)) {
             iterable = userRequestRepository.findAllByUsernameContainingIgnoringCase(filterValue);
 
         } else {
@@ -281,7 +292,7 @@ public class UserService extends ServiceUtil {
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public void resendMail(@NotNull UUID id) {
+    public void resendMail(@NotNull UUID id, Locale locale) {
         var request = userRequestRepository.findById(id);
         if (request.isEmpty())
             throw new InvalidDataException("User request not found");
@@ -297,10 +308,10 @@ public class UserService extends ServiceUtil {
         userRequestRepository.deleteById(id);
     }
 
-    public void resetPassword(@NotNull PasswordResetDto body) {
+    public void resetPassword(@NotNull PasswordResetDto body, Locale locale) {
         // Validate if one of the values is passed
         if (body.getUsername() == null && body.getEmail() == null)
-            throw new InvalidDataException("A valid username or email must be provided");
+            throw new InvalidDataException(messageSource.getMessage("user.passwordEmail.missing", null, locale));
 
         // Find user by either username or email
         var optUser = userRepository.findActiveByUsernameOrEmail(body.getUsername(), body.getEmail());
@@ -316,10 +327,10 @@ public class UserService extends ServiceUtil {
 
     }
 
-    public void setNewPassword(@NotNull UUID id, @NotNull NewPasswordDto body) {
+    public void setNewPassword(@NotNull UUID id, @NotNull NewPasswordDto body, Locale locale) {
         // Validate body
         if (body.getPassword() == null || body.getPassword().isBlank()) {
-            throw new InvalidDataException("Password must be filled.");
+            throw new InvalidDataException(messageSource.getMessage("user.password.missing", null, locale));
         }
 
         // Find the request

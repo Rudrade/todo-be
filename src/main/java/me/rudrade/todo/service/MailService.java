@@ -12,6 +12,7 @@ import me.rudrade.todo.repository.UserRequestRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class MailService {
     private final JavaMailSender mailSender;
     private final UserRequestRepository userRequestRepository;
     private final PasswordRequestRepository passwordRequestRepository;
+    private final MessageSource messageSource;
 
     @Value("${todo.app.mail.activationUrl}")
     private String activationUrl;
@@ -33,7 +35,7 @@ public class MailService {
 
     @Value("${profile.active}")
     private String profile;
-
+    
     public boolean sendActivationMail(UserRequest user) {
         if (activationUrl == null || !activationUrl.contains("{id}"))
             throw new IllegalStateException("Activation url is miss configured");
@@ -41,12 +43,13 @@ public class MailService {
         try {
             var url = activationUrl.replace("{id}", user.getId().toString());
 
-            var message = new StringBuilder();
-            message.append("Dear ").append(user.getUsername()).append(",\n\n");
-            message.append("Please activate your account via the url: ").append(url).append("\n\n");
-            message.append("This activation link is available for about 1 hour.");
+            var message = messageSource.getMessage("mail.activation.body", null, user.getLocale());
+            message = message.replace("${username}", user.getUsername());
+            message = message.replace("${url}", url);
 
-            send(user.getEmail(), getAppSubject()+"- Account activation", message.toString());
+            var subject = getAppSubject() + messageSource.getMessage("mail.activation.subject", null, user.getLocale());
+
+            send(user.getEmail(), subject, message);
 
             user.setMailSent(true);
             userRequestRepository.save(user);
@@ -62,14 +65,17 @@ public class MailService {
             throw new IllegalStateException("Password reset url is miss configured");
 
         try {
+            var locale = request.getUser().getLocale();
+
             var url = resetPasswordUrl.replace("{id}", request.getId().toString());
 
-            var message = new StringBuilder();
-            message.append("Dear ").append(request.getUser().getUsername()).append(",\n\n");
-            message.append("Please follow the url to reset your password: ").append(url).append("\n\n");
-            message.append("This link is available for about 1 hour.");
+            var message = messageSource.getMessage("mail.passwordReset.body", null, locale);
+            message = message.replace("${username}", request.getUser().getUsername());
+            message = message.replace("${url}", url);
 
-            send(request.getUser().getEmail(), getAppSubject()+"- Password reset", message.toString());
+            var subject = getAppSubject() + messageSource.getMessage("mail.passwordReset.subject", null, locale);
+
+            send(request.getUser().getEmail(), subject, message);
 
             request.setMailSent(true);
             passwordRequestRepository.save(request);

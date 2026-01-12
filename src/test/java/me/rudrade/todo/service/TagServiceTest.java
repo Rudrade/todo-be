@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
 
 import java.util.*;
 
@@ -20,10 +21,12 @@ import static org.mockito.Mockito.*;
 class TagServiceTest {
 
     @Mock private TagRepository tagRepository;
+    @Mock private MessageSource messageSource;
+
     private TagService tagService;
     private TagService getTagService() {
         if (tagService == null) {
-            tagService = new TagService(tagRepository);
+            tagService = new TagService(tagRepository, messageSource);
         }
         return tagService;
     }

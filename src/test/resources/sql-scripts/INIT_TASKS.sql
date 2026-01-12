@@ -1,8 +1,8 @@
 -- User
-INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_TO_BIN(UUID()), 'valid-user', 'change', 'ROLE_USER', 'test@mail.com', true)
+INSERT INTO user (id, username, password, role, email, is_active, language) VALUES (UUID_TO_BIN(UUID()), 'valid-user', 'change', 'ROLE_USER', 'test@mail.com', true, 'EN')
 ON DUPLICATE KEY UPDATE id=id;
 
-INSERT INTO user (id, username, password, role, email, is_active) VALUES (UUID_TO_BIN(UUID()), 'second-user', 'change', 'ROLE_USER', 'test-2@mail.com', true)
+INSERT INTO user (id, username, password, role, email, is_active, language) VALUES (UUID_TO_BIN(UUID()), 'second-user', 'change', 'ROLE_USER', 'test-2@mail.com', true, 'EN')
 ON DUPLICATE KEY UPDATE id=id;
 
 -- Cleanup

@@ -1,6 +1,7 @@
 package me.rudrade.todo.config;
 
 import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.types.Language;
 import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.UserRepository;
 
@@ -57,6 +58,7 @@ public abstract class SqlIntegrationTest {
             userTmp.setUsername(TEST_USERNAME);
             userTmp.setPassword(encoder.encode(TEST_PASSWORD));
             userTmp.setRole(Role.ROLE_USER);
+            userTmp.setLanguage(Language.EN);
 
             userRepository.save(userTmp);
             user = userRepository.findByUsername(TEST_USERNAME);
@@ -78,6 +80,7 @@ public abstract class SqlIntegrationTest {
         user.setPassword(encoder.encode("test"));
         user.setEmail(user.getUsername()+"@t");
         user.setRole(Role.ROLE_USER);
+        user.setLanguage(Language.EN);
         return user;
     }
 
