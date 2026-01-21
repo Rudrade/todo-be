@@ -26,11 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @Sql(scripts = {"/sql-scripts/INIT_TASKS.sql"}, executionPhase = ExecutionPhase.BEFORE_TEST_CLASS)
 class TodoControllerTest extends ControllerIntegration {
 
-    private static final String URI_GET_ALL = "/todo/api/task";
-    private static final String URI_SAVE_TASK = "/todo/api/task/save";
-    private static final String URI_GET_DETAIL = "/todo/api/task/detail/{id}";
-    private static final String URI_DELETE = "/todo/api/task/remove/{id}";
-    private static final String URI_GET_LISTS= "/todo/api/task/lists";
+    private static final String URI_GET_ALL = "/task";
+    private static final String URI_SAVE_TASK = "/task/save";
+    private static final String URI_GET_DETAIL = "/task/detail/{id}";
+    private static final String URI_DELETE = "/task/remove/{id}";
+    private static final String URI_GET_LISTS= "/task/lists";
 
     @Autowired private TaskService taskService;
 

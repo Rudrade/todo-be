@@ -19,8 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AuthControllerTest extends ControllerIntegration {
 
-    private static final String URI_AUTHENTICATE = "/todo/auth/login";
-    private static final String URI_REFRESH_TOKEN = "/todo/auth/refresh";
+    private static final String URI_AUTHENTICATE = "/auth/login";
+    private static final String URI_REFRESH_TOKEN = "/auth/refresh";
 
     @Autowired private MockMvcTester mvc;
 
