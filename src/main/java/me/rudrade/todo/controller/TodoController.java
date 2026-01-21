@@ -14,7 +14,7 @@ import me.rudrade.todo.dto.TaskDto;
 import me.rudrade.todo.service.TaskService;
 
 @RestController
-@RequestMapping("/todo/api/task")
+@RequestMapping("/task")
 public class TodoController {
 	
 	private final TaskService service;

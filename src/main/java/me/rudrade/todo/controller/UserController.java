@@ -21,7 +21,7 @@ import me.rudrade.todo.service.AuthenticationService;
 import me.rudrade.todo.service.UserService;
 
 @RestController
-@RequestMapping("/todo/api/users")
+@RequestMapping("/users")
 @AllArgsConstructor
 public class UserController {
 
