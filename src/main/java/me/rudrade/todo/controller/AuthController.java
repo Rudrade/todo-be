@@ -10,7 +10,7 @@ import me.rudrade.todo.dto.UserLoginDto;
 import me.rudrade.todo.service.AuthenticationService;
 
 @RestController
-@RequestMapping("/todo/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

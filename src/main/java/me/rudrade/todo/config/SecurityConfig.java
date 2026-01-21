@@ -54,18 +54,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeHttpRequests -> {
                     authorizeHttpRequests
 						.requestMatchers("/health/**").permitAll()
-                        .requestMatchers("/todo/auth/login").permitAll()
-						.requestMatchers("/todo/auth/refresh").permitAll()
-						.requestMatchers(HttpMethod.POST, "/todo/api/users/register").permitAll()
-						.requestMatchers(HttpMethod.POST, "/todo/api/users/activate/{id}").permitAll()
-						.requestMatchers("/todo/api/users/requests/mail/{id}").permitAll()
-						.requestMatchers(HttpMethod.POST, "/todo/api/users/reset-password").permitAll()
-						.requestMatchers(HttpMethod.PATCH, "/todo/api/users/reset-password/{id}").permitAll()
-						.requestMatchers(HttpMethod.GET, "/todo/api/users/{id}").hasAnyAuthority(Role.ROLE_USER.name())
-						.requestMatchers(HttpMethod.PATCH, "/todo/api/users/{id}").hasAuthority(Role.ROLE_USER.name())
-						.requestMatchers("/todo/api/users/**").hasAuthority(Role.ROLE_ADMIN.name())
-                        .requestMatchers("/todo/api/tag/**").hasAuthority(Role.ROLE_USER.name())
-						.requestMatchers("/todo/api/task/**").hasAuthority(Role.ROLE_USER.name());
+                        .requestMatchers("/auth/login").permitAll()
+						.requestMatchers("/auth/refresh").permitAll()
+						.requestMatchers(HttpMethod.POST, "/users/register").permitAll()
+						.requestMatchers(HttpMethod.POST, "/users/activate/{id}").permitAll()
+						.requestMatchers("/users/requests/mail/{id}").permitAll()
+						.requestMatchers(HttpMethod.POST, "/users/reset-password").permitAll()
+						.requestMatchers(HttpMethod.PATCH, "/users/reset-password/{id}").permitAll()
+						.requestMatchers(HttpMethod.GET, "/users/{id}").hasAnyAuthority(Role.ROLE_USER.name())
+						.requestMatchers(HttpMethod.PATCH, "/users/{id}").hasAuthority(Role.ROLE_USER.name())
+						.requestMatchers("/users/**").hasAuthority(Role.ROLE_ADMIN.name())
+                        .requestMatchers("/tag/**").hasAuthority(Role.ROLE_USER.name())
+						.requestMatchers("/task/**").hasAuthority(Role.ROLE_USER.name());
 
                     if (!"prod".equals(currentProfile)) {
                         authorizeHttpRequests.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll();

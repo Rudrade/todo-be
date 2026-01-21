@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TagControllerTest extends ControllerIntegration {
 
-    private static final String BASE_URI = "/todo/api/tag";
+    private static final String BASE_URI = "/tag";
 
     @Autowired private MockMvcTester mvc;
     @Autowired private TagRepository tagRepository;

@@ -34,11 +34,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 class UserControllerTest extends ControllerIntegration {
 
-    private static final String URI_CREATE_USER = "/todo/api/users/register";
-    private static final String URI_GET_USER = "/todo/api/users/{id}";
-    private static final String URI_UPDATE_USER = "/todo/api/users/{id}";
-    private static final String URI_GET_USERS = "/todo/api/users";
-    private static final String URI_ACTIVATE_USER = "/todo/api/users/activate/{id}";
+    private static final String URI_CREATE_USER = "/users/register";
+    private static final String URI_GET_USER = "/users/{id}";
+    private static final String URI_UPDATE_USER = "/users/{id}";
+    private static final String URI_GET_USERS = "/users";
+    private static final String URI_ACTIVATE_USER = "/users/activate/{id}";
 
     @Autowired private MockMvcTester mvc;
     @Autowired private UserRequestRepository userRequestRepository;
@@ -365,7 +365,7 @@ class UserControllerTest extends ControllerIntegration {
         request2.setRole(Role.ROLE_USER);
         userRequestRepository.save(request2);
 
-        assertThat(mvc.get().uri("/todo/api/users/requests")
+        assertThat(mvc.get().uri("/users/requests")
             .headers(getAdminAuthHeader())
         ).hasStatusOk()
         .bodyJson()
@@ -390,7 +390,7 @@ class UserControllerTest extends ControllerIntegration {
         userRequest.setUsername("test-resend");
         userRequestRepository.save(userRequest);
 
-        assertThat(mvc.patch().uri("/todo/api/users/requests/mail/"+userRequest.getId())
+        assertThat(mvc.patch().uri("/users/requests/mail/"+userRequest.getId())
             .headers(getAdminAuthHeader())
         ).hasStatusOk();
         
@@ -408,7 +408,7 @@ class UserControllerTest extends ControllerIntegration {
         userRequest.setUsername("test-delete");
         userRequestRepository.save(userRequest);
 
-        assertThat(mvc.delete().uri("/todo/api/users/requests/"+userRequest.getId())
+        assertThat(mvc.delete().uri("/users/requests/"+userRequest.getId())
             .headers(getAdminAuthHeader())
         ).hasStatusOk();
 
@@ -427,7 +427,7 @@ class UserControllerTest extends ControllerIntegration {
         user.setLanguage(Language.EN);
         userRepository.save(user);
 
-        assertThat(mvc.post().uri("/todo/api/users/reset-password")
+        assertThat(mvc.post().uri("/users/reset-password")
             .contentType(MediaType.APPLICATION_JSON)
             .content(mapper().writeValueAsString(new PasswordResetDto(user.getUsername(), user.getEmail())))
         ).hasStatusOk();
@@ -456,7 +456,7 @@ class UserControllerTest extends ControllerIntegration {
         request.setUser(user);
         passwordRequestRepository.save(request);
 
-        assertThat(mvc.patch().uri("/todo/api/users/reset-password/"+request.getId())
+        assertThat(mvc.patch().uri("/users/reset-password/"+request.getId())
             .contentType(MediaType.APPLICATION_JSON)
             .content(mapper().writeValueAsString(new NewPasswordDto("changed")))
         ).hasStatusOk();

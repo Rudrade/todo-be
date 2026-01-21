@@ -64,7 +64,7 @@ public class ControllerIntegration extends SqlIntegrationTest {
 
     private String getAuthToken(String username, String password) {
         try {
-            String strResponse = mvc.post().uri("/todo/auth/login")
+            String strResponse = mvc.post().uri("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(new UserLoginDto(username, password)))
                 .exchange()

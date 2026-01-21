@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/todo/api/tag")
+@RequestMapping("/tag")
 public class TagController {
 
     private final AuthenticationService authenticationService;
