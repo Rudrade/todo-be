@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ import me.rudrade.todo.exception.InvalidAccessException;
 import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
+import me.rudrade.todo.model.types.Language;
 import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.PasswordRequestRepository;
 import me.rudrade.todo.repository.UserRepository;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,12 +46,13 @@ class UserServiceTest {
     @Mock private MailService mailService;
     @Mock private PasswordRequestRepository passwordRequestRepository;
     @Mock private S3Service s3Service;
+    @Mock private MessageSource messageSource;
 
     private UserService userService;
 
     @BeforeEach
     void setup() {
-        userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService, passwordRequestRepository, s3Service);
+        userService = new UserService(userRepository, userRequestRepository, new BCryptPasswordEncoder(), mailService, passwordRequestRepository, s3Service, messageSource);
     }
 
     private static User adminUser() {
@@ -59,7 +63,7 @@ class UserServiceTest {
     }
 
     private static UserRequestDto validDto() {
-        return new UserRequestDto("new-user", "secret", "new-user@mail.com", Role.ROLE_USER);
+        return new UserRequestDto("new-user", "secret", "new-user@mail.com", Role.ROLE_USER, Language.EN);
     }
 
     @Test
@@ -71,7 +75,7 @@ class UserServiceTest {
             .thenReturn(List.of(user));
 
         var request = validDto();
-        assertThrows(EntityAlreadyExistsException.class, () -> userService.createUser(request));
+        assertThrows(EntityAlreadyExistsException.class, () -> userService.createUser(request, Locale.ENGLISH));
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verifyNoInteractions(userRequestRepository);
@@ -85,7 +89,7 @@ class UserServiceTest {
             .thenReturn(true);
 
         var request = validDto();
-        assertThrows(EntityAlreadyExistsException.class, () -> userService.createUser(request));
+        assertThrows(EntityAlreadyExistsException.class, () -> userService.createUser(request, Locale.ENGLISH));
 
         verify(userRepository, times(1)).findActiveByUsernameOrEmail("new-user", "new-user@mail.com");
         verify(userRequestRepository, times(1)).existsByUsernameOrEmail("new-user", "new-user@mail.com");
@@ -101,7 +105,7 @@ class UserServiceTest {
         when(userRequestRepository.save(any(UserRequest.class)))
             .thenAnswer(inv -> inv.getArgument(0));
 
-        UserRequest result = userService.createUser(validDto());
+        UserRequest result = userService.createUser(validDto(), Locale.ENGLISH);
 
         assertThat(result)
             .isNotNull()
@@ -177,7 +181,7 @@ class UserServiceTest {
         var idViolations = validator.validateParameters(
             userService,
             method,
-            new Object[]{null, new UserChangeDto("new-user", null, null, null, null, null, null), adminUser()}
+            new Object[]{null, new UserChangeDto("new-user", null, null, null, null, null, null, Language.EN), adminUser()}
         );
         var dataViolations = validator.validateParameters(
             userService,
@@ -187,7 +191,7 @@ class UserServiceTest {
         var requesterViolations = validator.validateParameters(
             userService,
             method,
-            new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null, null, null), null}
+            new Object[]{UUID.randomUUID(), new UserChangeDto("new-user", null, null, null, null, null, null, Language.EN), null}
         );
 
         assertThat(idViolations).hasSize(1);
@@ -198,7 +202,7 @@ class UserServiceTest {
     @Test
     void itShouldThrowWhenNoFieldsProvided() {
         var id = UUID.randomUUID();
-        var data = new UserChangeDto(null, null, null, null, null, null, null);
+        var data = new UserChangeDto(null, null, null, null, null, null, null, Language.EN);
         var admin = adminUser();
 
         assertThrows(InvalidDataException.class, () -> userService.updateUser(id, data, admin));
@@ -209,7 +213,7 @@ class UserServiceTest {
     @Test
     void itShouldThrowWhenUpdatingNonExistingUser() {
         var id = UUID.randomUUID();
-        var data = new UserChangeDto("user", null, null, null, null, null, null);
+        var data = new UserChangeDto("user", null, null, null, null, null, null, Language.EN);
         var admin = adminUser();
 
         when(userRepository.findById(id)).thenReturn(Optional.empty());
@@ -233,7 +237,7 @@ class UserServiceTest {
         requester.setId(UUID.randomUUID());
         requester.setRole(Role.ROLE_USER);
 
-        var data = new UserChangeDto("new-user", null, null, null, null, null, null);
+        var data = new UserChangeDto("new-user", null, null, null, null, null, null, Language.EN);
 
         assertThrows(InvalidAccessException.class, () -> userService.updateUser(id, data, requester));
 
@@ -255,7 +259,7 @@ class UserServiceTest {
         when(userRepository.findActiveByUsernameOrEmail("new-user", "new@mail.com"))
             .thenReturn(List.of(user));
 
-        var data = new UserChangeDto("new-user", null, "new@mail.com", null, null, null, null);
+        var data = new UserChangeDto("new-user", null, "new@mail.com", null, null, null, null, Language.EN);
         var admin = adminUser();
 
         assertThrows(EntityAlreadyExistsException.class, () -> userService.updateUser(id, data, admin));
@@ -272,7 +276,7 @@ class UserServiceTest {
         user.setRole(Role.ROLE_USER);
 
         var id = UUID.randomUUID();
-        var data = new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null, null);
+        var data = new UserChangeDto(null, null, null, Role.ROLE_ADMIN, null, null, null, Language.EN);
 
         assertThrows(InvalidAccessException.class,  () -> userService.updateUser(id, data, user));
 
@@ -285,7 +289,7 @@ class UserServiceTest {
         user.setRole(Role.ROLE_USER);
 
         var id = UUID.randomUUID();
-        var data = new UserChangeDto(null, null, null, null, Boolean.FALSE, null, null);
+        var data = new UserChangeDto(null, null, null, null, Boolean.FALSE, null, null, Language.EN);
 
         assertThrows(InvalidAccessException.class,  () -> userService.updateUser(id, data, user));
 

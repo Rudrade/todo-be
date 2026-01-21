@@ -1,5 +1,7 @@
 package me.rudrade.todo.dto.response;
 
-public record LoginResponse(String token, String imageUrl) {
+import me.rudrade.todo.model.types.Language;
+
+public record LoginResponse(String token, String imageUrl, Language language) {
 
 }

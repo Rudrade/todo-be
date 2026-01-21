@@ -3,6 +3,7 @@ package me.rudrade.todo.model;
 import java.io.Serial;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import lombok.Getter;
 import lombok.Setter;
+import me.rudrade.todo.model.types.Language;
 import me.rudrade.todo.model.types.Role;
 
 @Table(name = "user")
@@ -55,6 +57,10 @@ public class User implements UserDetails {
 	@Column(name = "image_version")
 	private String imageVersion;
 
+	@Column(name = "language", nullable = false)
+	@Enumerated(EnumType.STRING)
+	private Language language;
+
 	@OneToMany(fetch = FetchType.LAZY, mappedBy = "user", cascade = CascadeType.REMOVE)
 	private List<Task> tasks;
 
@@ -77,6 +83,12 @@ public class User implements UserDetails {
 	@Override
 	public String getPassword() {
 		return this.password;
+	}
+
+	public Locale getLocale() {
+		if (language == null) return Locale.ENGLISH;
+
+		return Locale.of(language.name());
 	}
 
 	@Override

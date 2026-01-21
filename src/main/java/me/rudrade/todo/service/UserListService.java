@@ -9,22 +9,22 @@ import me.rudrade.todo.model.UserList;
 import me.rudrade.todo.repository.UserListRepository;
 import me.rudrade.todo.util.ServiceUtil;
 
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class UserListService extends ServiceUtil {
 
     private final UserListRepository userListRepository;
     private final AuthenticationService authenticationService;
-
-    public UserListService(UserListRepository userListRepository, AuthenticationService authenticationService) {
-        this.userListRepository = userListRepository;
-        this.authenticationService = authenticationService;
-    }
+    private final MessageSource messageSource;
 
     @Transactional(readOnly = true)
     public List<UserListDto> getUserListsByToken(String authToken) {
@@ -41,7 +41,7 @@ public class UserListService extends ServiceUtil {
             throw new InvalidAccessException();
 
         if (listName == null || listName.isBlank())
-            throw new InvalidDataException("List name must be filled.");
+            throw new InvalidDataException(messageSource.getMessage("list.name.missing", null, user.getLocale()));
 
         Optional<UserList> optList = findByName(listName, user);
         return optList.orElseGet(() -> userListRepository.save(new UserList(null, listName, generateRandomHexColor(), user, null)));

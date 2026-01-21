@@ -24,7 +24,7 @@ public class AuthController {
 
 	@GetMapping("/refresh")
 	public LoginResponse refreshToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String token) {
-		return new LoginResponse(authenticationService.refreshToken(jwtService.cleanBearer(token)), null);
+		return new LoginResponse(authenticationService.refreshToken(jwtService.cleanBearer(token)), null, null);
 	}
 
 }

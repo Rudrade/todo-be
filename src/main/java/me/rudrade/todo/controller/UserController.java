@@ -3,6 +3,7 @@ package me.rudrade.todo.controller;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
+import java.util.Locale;
 import java.util.UUID;
 
 import org.springframework.web.bind.annotation.*;
@@ -28,9 +29,8 @@ public class UserController {
     private final AuthenticationService authenticationService;
 
     @PostMapping("/register")
-    public void createUser(@RequestBody UserRequestDto body) {
-        
-        userService.createUser(body);
+    public void createUser(@RequestBody UserRequestDto body, Locale locale) {
+        userService.createUser(body, locale);
     }
 
     @GetMapping("/{id}")
@@ -76,8 +76,8 @@ public class UserController {
     }
 
     @PatchMapping("/requests/mail/{id}")
-    public void resendMail(@PathVariable UUID id) {
-        userService.resendMail(id);
+    public void resendMail(@PathVariable UUID id, Locale locale) {
+        userService.resendMail(id, locale);
     }
 
     @DeleteMapping("/requests/{id}")
@@ -86,13 +86,13 @@ public class UserController {
     }
 
     @PostMapping("/reset-password")
-	public void resetPassword(@RequestBody PasswordResetDto body) {
-        userService.resetPassword(body);
+	public void resetPassword(@RequestBody PasswordResetDto body, Locale locale) {
+        userService.resetPassword(body, locale);
 	}
 
     @PatchMapping("/reset-password/{id}")
-    public void setNewPassword(@PathVariable UUID id, @RequestBody NewPasswordDto body) {
-        userService.setNewPassword(id, body);
+    public void setNewPassword(@PathVariable UUID id, @RequestBody NewPasswordDto body, Locale locale) {
+        userService.setNewPassword(id, body, locale);
     }
 
 }

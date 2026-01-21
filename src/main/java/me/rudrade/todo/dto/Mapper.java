@@ -51,6 +51,7 @@ public class Mapper {
 		user.setPassword(dto.getPassword());
 		user.setEmail(dto.getEmail());
 		user.setRole(dto.getRole());
+		user.setLanguage(dto.getLanguage());
 		return user;
 	}
 
@@ -60,7 +61,8 @@ public class Mapper {
 			user.getUsername(),
 			user.getEmail(),
 			user.getRole(),
-			user.isActive()
+			user.isActive(),
+			user.getLanguage()
 		);
 	}
 

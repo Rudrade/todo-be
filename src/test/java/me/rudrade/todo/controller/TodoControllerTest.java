@@ -6,7 +6,7 @@ import me.rudrade.todo.dto.UserListDto;
 import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.dto.response.UserListResponse;
-import me.rudrade.todo.exception.TaskNotFoundException;
+import me.rudrade.todo.exception.InvalidDataException;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.service.TaskService;
 import org.junit.jupiter.api.Test;
@@ -178,7 +178,7 @@ class TodoControllerTest extends ControllerIntegration {
 
         TaskService service = taskService;
         UUID deletedId = savedTask.getId();
-        assertThrows(TaskNotFoundException.class, () -> service.getById(deletedId, user));
+        assertThrows(InvalidDataException.class, () -> service.getById(deletedId, user));
     }
 
     @Test

@@ -7,7 +7,6 @@ import me.rudrade.todo.dto.filter.TaskListFilter;
 import me.rudrade.todo.dto.response.TaskListResponse;
 import me.rudrade.todo.exception.InvalidAccessException;
 import me.rudrade.todo.exception.InvalidDataException;
-import me.rudrade.todo.exception.TaskNotFoundException;
 import me.rudrade.todo.model.Tag;
 import me.rudrade.todo.model.Task;
 import me.rudrade.todo.model.User;
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
@@ -36,12 +36,13 @@ class TaskServiceTest {
     @Mock private TaskRepository taskRepository;
     @Mock private UserListService userListService;
     @Mock private TagService tagService;
+    @Mock private MessageSource messageSource;
 
     private TaskService taskService;
 
     private TaskService taskService() {
         if (taskService == null) {
-            taskService = new TaskService(userListService, taskRepository, tagService);
+            taskService = new TaskService(userListService, taskRepository, tagService, messageSource);
         }
         return taskService;
     }
@@ -114,7 +115,7 @@ class TaskServiceTest {
 
         TaskService service = taskService();
 
-        assertThrows(TaskNotFoundException.class, () -> service.saveTask(input, user));
+        assertThrows(InvalidDataException.class, () -> service.saveTask(input, user));
 
         verify(taskRepository).findByIdAndUserId(input.getId(), user.getId());
         verifyNoMoreInteractions(taskRepository);
@@ -325,9 +326,9 @@ class TaskServiceTest {
         User validUser = user();
         UUID randomId = UUID.randomUUID();
 
-        assertThrows(TaskNotFoundException.class, () -> service.getById(null, validUser));
-        assertThrows(TaskNotFoundException.class, () -> service.getById(randomId, null));
-        assertThrows(TaskNotFoundException.class, () -> service.getById(randomId, userNoId));
+        assertThrows(InvalidAccessException.class, () -> service.getById(null, validUser));
+        assertThrows(InvalidAccessException.class, () -> service.getById(randomId, null));
+        assertThrows(InvalidAccessException.class, () -> service.getById(randomId, userNoId));
         verifyNoInteractions(taskRepository);
     }
 
@@ -339,7 +340,7 @@ class TaskServiceTest {
 
         TaskService service = taskService();
 
-        assertThrows(TaskNotFoundException.class, () -> service.getById(id, user));
+        assertThrows(InvalidDataException.class, () -> service.getById(id, user));
 
         verify(taskRepository).findByIdAndUserId(id, user.getId());
     }
@@ -368,9 +369,9 @@ class TaskServiceTest {
         User validUser = user();
         UUID randomId = UUID.randomUUID();
 
-        assertThrows(TaskNotFoundException.class, () -> service.deleteById(null, validUser));
-        assertThrows(TaskNotFoundException.class, () -> service.deleteById(randomId, null));
-        assertThrows(TaskNotFoundException.class, () -> service.deleteById(randomId, userNoId));
+        assertThrows(InvalidAccessException.class, () -> service.deleteById(null, validUser));
+        assertThrows(InvalidAccessException.class, () -> service.deleteById(randomId, null));
+        assertThrows(InvalidAccessException.class, () -> service.deleteById(randomId, userNoId));
         verifyNoInteractions(taskRepository);
     }
 
@@ -382,7 +383,7 @@ class TaskServiceTest {
 
         TaskService service = taskService();
 
-        assertThrows(TaskNotFoundException.class, () -> service.deleteById(id, user));
+        assertThrows(InvalidDataException.class, () -> service.deleteById(id, user));
 
         verify(taskRepository).findByIdAndUserId(id, user.getId());
         verify(taskRepository, never()).deleteById(any());

@@ -7,20 +7,21 @@ import me.rudrade.todo.model.User;
 import me.rudrade.todo.repository.TagRepository;
 import me.rudrade.todo.util.ServiceUtil;
 
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class TagService extends ServiceUtil {
 
     private final TagRepository tagRepository;
-
-    public TagService(TagRepository tagRepository) {
-        this.tagRepository = tagRepository;
-    }
+    private final MessageSource messageSource;
 
     public List<Tag> findByUser(User user) {
         if (user == null || user.getId() == null)
@@ -35,7 +36,7 @@ public class TagService extends ServiceUtil {
         }
 
         if (tag == null)
-            throw new InvalidDataException("Tag must exist.");
+            throw new InvalidDataException(messageSource.getMessage("tag.missing", null, user.getLocale()));
 
         Optional<Tag> optionalTag = findByName(tag.getName(), user);
         return optionalTag.orElseGet(() -> {

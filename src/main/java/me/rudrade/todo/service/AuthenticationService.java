@@ -44,7 +44,7 @@ public class AuthenticationService {
 			imageUrl = s3Service.getImagePath(oUser.getId(), oUser.getImageVersion());
 		 }
 
-		return new LoginResponse(jwtService.generateToken(oUser), imageUrl);
+		return new LoginResponse(jwtService.generateToken(oUser), imageUrl, oUser.getLanguage());
 	}
 
 	public String refreshToken(@NotBlank String authToken) {

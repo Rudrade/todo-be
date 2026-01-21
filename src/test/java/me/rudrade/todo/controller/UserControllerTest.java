@@ -18,6 +18,7 @@ import me.rudrade.todo.dto.types.UserSearchType;
 import me.rudrade.todo.model.PasswordRequest;
 import me.rudrade.todo.model.User;
 import me.rudrade.todo.model.UserRequest;
+import me.rudrade.todo.model.types.Language;
 import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.PasswordRequestRepository;
 import me.rudrade.todo.repository.UserRepository;
@@ -48,7 +49,7 @@ class UserControllerTest extends ControllerIntegration {
     void itShouldCreateUserRequestWhenAdmin() throws Exception {
         String username = "candidate-" + UUID.randomUUID();
         String email = "candidate-" + UUID.randomUUID() + "@mail.com";
-        UserRequestDto request = new UserRequestDto(username, "secret", email, Role.ROLE_USER);
+        UserRequestDto request = new UserRequestDto(username, "secret", email, Role.ROLE_USER, Language.EN);
 
         assertThat(mvc.post().uri(URI_CREATE_USER)
             .contentType(MediaType.APPLICATION_JSON)
@@ -62,7 +63,7 @@ class UserControllerTest extends ControllerIntegration {
     @Test
     void itShouldReturnConflictWhenUserAlreadyExists() throws Exception {
         User existing = getTestUser();
-        UserRequestDto request = new UserRequestDto(existing.getUsername(), "secret", existing.getEmail(), Role.ROLE_USER);
+        UserRequestDto request = new UserRequestDto(existing.getUsername(), "secret", existing.getEmail(), Role.ROLE_USER, Language.EN);
 
         assertThat(mvc.post().uri(URI_CREATE_USER)
             .contentType(MediaType.APPLICATION_JSON)
@@ -104,6 +105,7 @@ class UserControllerTest extends ControllerIntegration {
         user.setEmail(UUID.randomUUID()+"@mail.com");
         user.setRole(Role.ROLE_USER);
         user.setActive(true);
+        user.setLanguage(Language.EN);
         userRepository.save(user);
 
         var updatedUser = new UserChangeDto(
@@ -112,7 +114,7 @@ class UserControllerTest extends ControllerIntegration {
             UUID.randomUUID()+"@mail.com",
             Role.ROLE_ADMIN,
             Boolean.FALSE,
-            null, null);
+            null, null, Language.EN);
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
@@ -138,6 +140,7 @@ class UserControllerTest extends ControllerIntegration {
         user.setEmail(UUID.randomUUID()+"@mail.com");
         user.setRole(Role.ROLE_USER);
         user.setActive(true);
+        user.setLanguage(Language.EN);
         userRepository.save(user);
 
         var updatedUser = new UserChangeDto(
@@ -146,7 +149,7 @@ class UserControllerTest extends ControllerIntegration {
             UUID.randomUUID()+"@mail.com",
             null,
             null,
-            "test-password", null);
+            "test-password", null, Language.EN);
 
         assertThat(
             mvc.patch().uri(URI_UPDATE_USER, user.getId())
@@ -172,6 +175,7 @@ class UserControllerTest extends ControllerIntegration {
         activeUser.setEmail("list-user-" + UUID.randomUUID() + "@mail.com");
         activeUser.setRole(Role.ROLE_USER);
         activeUser.setActive(true);
+        activeUser.setLanguage(Language.EN);
 
         User inactiveUser = new User();
         inactiveUser.setUsername("list-inactive-" + UUID.randomUUID());
@@ -179,6 +183,7 @@ class UserControllerTest extends ControllerIntegration {
         inactiveUser.setEmail("list-inactive-" + UUID.randomUUID() + "@mail.com");
         inactiveUser.setRole(Role.ROLE_USER);
         inactiveUser.setActive(false);
+        inactiveUser.setLanguage(Language.PT);
 
         userRepository.save(activeUser);
         userRepository.save(inactiveUser);
@@ -203,6 +208,7 @@ class UserControllerTest extends ControllerIntegration {
         user.setEmail(user.getUsername()+"@t.com");
         user.setPassword(encoder.encode("test"));
         user.setRole(Role.ROLE_USER);
+        user.setLanguage(Language.EN);
         userRepository.save(user);
 
         var updateData = new UserChangeDto(
@@ -211,7 +217,7 @@ class UserControllerTest extends ControllerIntegration {
             user.getEmail(),
             user.getRole(),
             user.isActive(),
-            null, null
+            null, null, Language.EN
         );
 
         assertThat(
@@ -243,7 +249,7 @@ class UserControllerTest extends ControllerIntegration {
             null,
             null,
             null,
-            null, null
+            null, null, Language.EN
         );
 
         assertThat(
@@ -263,6 +269,7 @@ class UserControllerTest extends ControllerIntegration {
         activeUser.setEmail("filter-active-" + UUID.randomUUID() + "@mail.com");
         activeUser.setRole(Role.ROLE_USER);
         activeUser.setActive(true);
+        activeUser.setLanguage(Language.EN);
         userRepository.save(activeUser);
 
         var response = mvc.get().uri(URI_GET_USERS)
@@ -284,6 +291,7 @@ class UserControllerTest extends ControllerIntegration {
         user.setEmail("search-username-" + UUID.randomUUID() + "@mail.com");
         user.setRole(Role.ROLE_USER);
         user.setActive(true);
+        user.setLanguage(Language.EN);
         userRepository.save(user);
 
         var response = mvc.get().uri(URI_GET_USERS)
@@ -313,6 +321,7 @@ class UserControllerTest extends ControllerIntegration {
         request.setEmail("request-mail@test");
         request.setRole(Role.ROLE_USER);
         request.setDtCreated(LocalDateTime.now());
+        request.setLanguage(Language.PT);
         userRequestRepository.save(request);
 
         assertThat(mvc.post().uri(URI_ACTIVATE_USER, request.getId()))
@@ -332,6 +341,7 @@ class UserControllerTest extends ControllerIntegration {
                assertThat(user.getRole()).isEqualTo(request.getRole());
                assertThat(user.getId()).isNotNull().isNotEqualTo(request.getId());
                assertThat(user.isActive()).isTrue();
+               assertThat(user.getLanguage()).isEqualTo(request.getLanguage());
             });
     }
 
@@ -414,6 +424,7 @@ class UserControllerTest extends ControllerIntegration {
         user.setPassword("test");
         user.setRole(Role.ROLE_USER);
         user.setUsername("reset-p");
+        user.setLanguage(Language.EN);
         userRepository.save(user);
 
         assertThat(mvc.post().uri("/todo/api/users/reset-password")
@@ -436,6 +447,7 @@ class UserControllerTest extends ControllerIntegration {
         user.setPassword(encoder.encode("test"));
         user.setRole(Role.ROLE_USER);
         user.setUsername("test-change");
+        user.setLanguage(Language.EN);
         userRepository.save(user);
 
         var request = new PasswordRequest();

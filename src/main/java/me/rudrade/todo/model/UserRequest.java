@@ -1,6 +1,7 @@
 package me.rudrade.todo.model;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.UUID;
 
 import jakarta.persistence.*;
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import me.rudrade.todo.model.types.Language;
 import me.rudrade.todo.model.types.Role;
 
 @Table(name = "user_request")
@@ -45,4 +47,14 @@ public class UserRequest {
 
 	@Column(name = "mail_sent", nullable = false)
 	private boolean mailSent;
+
+	@Column(name = "language", nullable = false)
+	@Enumerated(EnumType.STRING)
+	private Language language = Language.EN;
+
+	public Locale getLocale() {
+		if (language == null) return Locale.ENGLISH;
+
+		return Locale.of(language.name());
+	}
 }

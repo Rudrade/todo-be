@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import me.rudrade.todo.dto.UserLoginDto;
 import me.rudrade.todo.dto.response.LoginResponse;
 import me.rudrade.todo.model.User;
+import me.rudrade.todo.model.types.Language;
 import me.rudrade.todo.model.types.Role;
 import me.rudrade.todo.repository.UserRepository;
 
@@ -91,6 +92,7 @@ public class ControllerIntegration extends SqlIntegrationTest {
                 admin.setEmail("admin@mail.com");
                 admin.setRole(Role.ROLE_ADMIN);
                 admin.setActive(true);
+                admin.setLanguage(Language.EN);
                 return userRepository.save(admin);
             });
 

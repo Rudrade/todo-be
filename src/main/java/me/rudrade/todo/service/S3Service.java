@@ -36,7 +36,8 @@ public class S3Service {
             throw new InvalidDataException("Image size cannot exceed 1.5MB");
         }
 
-        if (image.getOriginalFilename() == null || !image.getOriginalFilename().endsWith(ALLOWED_EXTENSION)) {
+        var imgName = image.getOriginalFilename();
+        if (imgName == null || !imgName.endsWith(ALLOWED_EXTENSION)) {
             throw new InvalidDataException("Image must be a "+ALLOWED_EXTENSION);
         }
 
