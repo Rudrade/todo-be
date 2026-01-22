@@ -10,9 +10,13 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import io.github.bucket4j.distributed.proxy.ProxyManager;
+import io.lettuce.core.RedisClient;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -83,6 +87,9 @@ public abstract class SqlIntegrationTest {
         user.setLanguage(Language.EN);
         return user;
     }
+
+    @MockitoBean private RedisClient client;
+    @MockitoBean private ProxyManager<String> proxyManager;
 
 }
 
